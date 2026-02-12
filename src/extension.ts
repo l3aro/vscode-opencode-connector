@@ -63,7 +63,7 @@ async function discoverAndConnect(): Promise<boolean> {
 
       if (serverDir.toLowerCase() === localDir.toLowerCase()) {
         // Found a match — update the global client
-          if (connectedPort !== port) {
+        if (connectedPort !== port) {
           if (openCodeClient) {
             openCodeClient.destroy();
           }
@@ -346,7 +346,7 @@ function registerCommands(): void {
 
   // Add file reference to OpenCode prompt
   const addFileCommand = vscode.commands.registerCommand(
-    'opencodeConnector.addFileToPrompt',
+    'opencodeConnector.addToPrompt',
     async () => {
       const ref = getActiveFileRef();
       if (!ref) {
@@ -373,7 +373,7 @@ function registerCommands(): void {
   );
 
   const opencodeAddFileCommand = vscode.commands.registerCommand(
-    'opencode.addFileToPrompt',
+    'opencode.addToPrompt',
     async () => {
       const ref = getActiveFileRef();
       if (!ref) {

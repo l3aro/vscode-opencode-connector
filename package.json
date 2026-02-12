@@ -17,8 +17,17 @@
   "contributes": {
     "commands": [
       {
-        "command": "opencodeConnector.addFileToPrompt",
-        "title": "Add File to OpenCode Prompt"
+        "command": "opencodeConnector.addToPrompt",
+        "title": "OpenCodeConnector: Add to Prompt"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "opencodeConnector.addToPrompt",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "editorTextFocus",
+        "title": "Add to OpenCode Prompt"
       }
     ],
     "configuration": {
