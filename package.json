@@ -11,16 +11,11 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:opencodeConnector.connect",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "opencodeConnector.connect",
-        "title": "Connect to OpenCode"
-      },
       {
         "command": "opencodeConnector.addFileToPrompt",
         "title": "Add File to OpenCode Prompt"

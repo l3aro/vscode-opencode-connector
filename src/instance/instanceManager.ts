@@ -5,7 +5,9 @@
 
 import * as net from 'net';
 import * as child_process from 'child_process';
+import * as vscode from 'vscode';
 import { ConfigManager } from '../config';
+import { WorkspaceUtils } from '../utils/workspace';
 
 /**
  * Result of checking if an instance is running
@@ -464,6 +466,113 @@ export class InstanceManager {
   public checkInstanceSync(port?: number, timeoutMs: number = 2000): InstanceCheckResult {
     const targetPort = port ?? this.configManager.getPort();
     return checkInstanceSync(targetPort, timeoutMs);
+  }
+
+  /**
+   * Check if a specific port is available for use
+   * @param port - Port number to check
+   * @returns Promise<boolean> - true if port is available, false if in use
+   */
+  public checkPortAvailable(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+      
+      socket.setTimeout(1000);
+      
+      socket.on('connect', () => {
+        // Port is in use - someone is listening
+        socket.destroy();
+        resolve(false);
+      });
+      
+      socket.on('timeout', () => {
+        // Timeout means port is likely available (nothing responding)
+        socket.destroy();
+        resolve(true);
+      });
+      
+      socket.on('error', (err) => {
+        // Connection refused means port is available
+        // EADDRINUSE would mean port is in use (but connect event should catch this)
+        if ((err as any).code === 'ECONNREFUSED') {
+          socket.destroy();
+          resolve(true);
+        } else {
+          // Other errors - assume port is available for safety
+          socket.destroy();
+          resolve(true);
+        }
+      });
+      
+      socket.connect(port, 'localhost');
+    });
+  }
+
+  /**
+   * Find the first available port in a given range
+   * @param startPort - Start of port range (default: 4096)
+   * @param endPort - End of port range (default: 5096)
+   * @returns Promise<number> - First available port found
+   * @throws Error if no ports are available in the range
+   */
+  public async findAvailablePort(startPort: number = 4096, endPort: number = 5096): Promise<number> {
+    for (let port = startPort; port <= endPort; port++) {
+      const isAvailable = await this.checkPortAvailable(port);
+      if (isAvailable) {
+        return port;
+      }
+    }
+    
+    throw new Error(`No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`);
+  }
+
+  /**
+   * Spawn an OpenCode instance in a VSCode Integrated Terminal
+   * @param port - Port number to use for the instance
+   * @returns Promise<void>
+   */
+  public async spawnInTerminal(port: number): Promise<void> {
+    const workspacePath = this.getWorkspacePath();
+    const workspaceHash = WorkspaceUtils.getWorkspaceHash(workspacePath);
+    const terminalName = `OpenCode: ${workspaceHash}`;
+    const binaryPath = this.configManager.getBinaryPath() || 'opencode';
+    // Don't use getCommandWithExtension here — the integrated terminal shell
+    // resolves binaries via PATH naturally (handles .exe, aliases, etc.)
+    const fullCommand = `${binaryPath} --port ${port}`;
+
+    // Check for existing terminal with the same name
+    const existingTerminal = vscode.window.terminals.find(
+      (t) => t.name === terminalName
+    );
+
+    if (existingTerminal) {
+      // Send Ctrl+C to stop any previous process
+      // On Windows, multiple Ctrl+C or a small delay might be needed
+      existingTerminal.sendText('\x03');
+      
+      // Small delay to ensure shell processes the interrupt
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
+      // Send the new command
+      existingTerminal.sendText(fullCommand);
+    } else {
+      // Create a new terminal, make it visible and focused
+      const terminal = vscode.window.createTerminal({ name: terminalName });
+      terminal.show(false);
+      
+      // Wait for shell to initialize before sending the command
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      terminal.sendText(fullCommand);
+    }
+  }
+
+  /**
+   * Get the workspace path for the current context
+   * @returns Workspace path string
+   */
+  private getWorkspacePath(): string {
+    return WorkspaceUtils.getWorkspacePath();
   }
 }
 

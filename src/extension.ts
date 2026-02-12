@@ -22,6 +22,8 @@ let agentsSyncManager: AgentsSyncManager | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
 /** Port of the currently connected OpenCode instance */
 let connectedPort: number | undefined;
+/** Last auto-spawn error for user-facing messages */
+let lastAutoSpawnError: string | undefined;
 
 /**
  * Discover a running OpenCode instance serving the current workspace directory.
@@ -89,7 +91,7 @@ async function discoverAndConnect(): Promise<boolean> {
 
 /**
  * Ensure we're connected to an OpenCode instance.
- * Tries: current client → auto-discovery → configured port.
+ * Tries: current client → auto-discovery → auto-spawn → configured port.
  * @returns true if connected
  */
 async function ensureConnected(): Promise<boolean> {
@@ -111,7 +113,47 @@ async function ensureConnected(): Promise<boolean> {
     return true;
   }
 
-  // 3. Fall back to configured port
+  // 3. Auto-spawn new instance if discovery failed
+  lastAutoSpawnError = undefined;
+  if (instanceManager) {
+    try {
+      // Find an available port
+      const port = await instanceManager.findAvailablePort();
+      
+      // Spawn in terminal
+      await instanceManager.spawnInTerminal(port);
+      
+      // Wait for server to be ready
+      const serverReady = await waitForServer(port);
+      
+      if (serverReady) {
+        // Additional settling delay — the HTTP server responds before the TUI
+        // is fully initialized. Without this, the first appendPrompt is dropped.
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Update the client to use the new port
+        if (openCodeClient) {
+          openCodeClient.destroy();
+        }
+        openCodeClient = new OpenCodeClient({ port });
+        connectedPort = port;
+        
+        if (agentsSyncManager) {
+          agentsSyncManager.updateClient(openCodeClient);
+        }
+        
+        console.log(`OpenCode Connector: spawned and connected to instance on port ${port}`);
+        return true;
+      } else {
+        lastAutoSpawnError = `Spawned OpenCode on port ${port} but it did not become ready within 30s. Check the "OpenCode" terminal for errors.`;
+      }
+    } catch (err) {
+      lastAutoSpawnError = `Auto-spawn failed: ${(err as Error).message}`;
+      // Continue to fallback
+    }
+  }
+
+  // 4. Fall back to configured port
   const port = configManager?.getPort() ?? 4096;
   if (!openCodeClient || openCodeClient.getPort() !== port) {
     if (openCodeClient) {
@@ -127,6 +169,37 @@ async function ensureConnected(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Wait for the OpenCode server to be ready on a specific port
+ * @param port - Port to check
+ * @param retries - Number of retry attempts (default: 30)
+ * @param delay - Delay between retries in ms (default: 1000)
+ * @returns true if server is ready, false if timeout
+ */
+async function waitForServer(port: number, retries: number = 30, delay: number = 1000): Promise<boolean> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      // Create a temporary client to test the server
+      const tempClient = new OpenCodeClient({ port, timeout: 1000, maxRetries: 0 });
+      
+      // Use getPath() as a health check (it tests the /path endpoint)
+      await tempClient.getPath();
+      tempClient.destroy();
+      
+      // Server is ready
+      return true;
+    } catch {
+      // Server not ready yet, wait and retry
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  // Timeout - server never became ready
+  return false;
 }
 
 /**
@@ -353,9 +426,10 @@ function registerCommands(): void {
 
       const connected = await ensureConnected();
       if (!connected || !openCodeClient) {
-        await vscode.window.showErrorMessage(
-          'No OpenCode instance found. Run `opencode --port <port>` in your project directory.'
-        );
+        const msg = lastAutoSpawnError
+          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+        await vscode.window.showErrorMessage(msg);
         return;
       }
 
@@ -381,9 +455,10 @@ function registerCommands(): void {
 
       const connected = await ensureConnected();
       if (!connected || !openCodeClient) {
-        await vscode.window.showErrorMessage(
-          'No OpenCode instance found. Run `opencode --port <port>` in your project directory.'
-        );
+        const msg = lastAutoSpawnError
+          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+        await vscode.window.showErrorMessage(msg);
         return;
       }
 

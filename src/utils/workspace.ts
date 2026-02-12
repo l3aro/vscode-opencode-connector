@@ -4,6 +4,7 @@
  */
 
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 
 /**
  * Workspace root information
@@ -239,6 +240,15 @@ export const WorkspaceUtils = {
     return this.getAllWorkspaceUris().map((uri) =>
       vscode.Uri.joinPath(uri, 'AGENTS.md')
     );
+  },
+
+  /**
+   * Generate an 8-character MD5 hash for a workspace path
+   * @param workspacePath - The workspace path to hash
+   * @returns 8-character hexadecimal hash string
+   */
+  getWorkspaceHash(workspacePath: string): string {
+    return crypto.createHash('md5').update(workspacePath).digest('hex').substring(0, 8);
   },
 };
 
