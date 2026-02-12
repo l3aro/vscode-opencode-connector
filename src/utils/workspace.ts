@@ -197,49 +197,6 @@ export const WorkspaceUtils = {
   },
 
   /**
-   * Get AGENTS.md file path for a workspace
-   * @param workspaceRoot - Workspace root path
-   * @returns Full path to AGENTS.md
-   */
-  getAgentsMdPath(workspaceRoot: string): string {
-    // Handle URI or filesystem path
-    let rootPath = workspaceRoot;
-    try {
-      const uri = vscode.Uri.parse(workspaceRoot);
-      rootPath = uri.fsPath;
-    } catch {
-      // Already a filesystem path
-    }
-
-    // Ensure proper path separator
-    if (!rootPath.endsWith('/') && !rootPath.endsWith('\\')) {
-      rootPath += '/';
-    }
-
-    return `${rootPath}AGENTS.md`;
-  },
-
-  /**
-   * Get AGENTS.md URI for primary workspace
-   * @returns URI of AGENTS.md file
-   */
-  getPrimaryAgentsMdUri(): vscode.Uri | undefined {
-    const primaryRoot = this.getPrimaryWorkspaceUri();
-    if (primaryRoot) {
-      return vscode.Uri.joinPath(primaryRoot, 'AGENTS.md');
-    }
-    return undefined;
-  },
-
-  /**
-   * Get AGENTS.md URIs for all workspaces
-   * @returns Array of AGENTS.md URIs
-   */
-  getAllAgentsMdUris(): vscode.Uri[] {
-    return this.getAllWorkspaceUris().map(uri => vscode.Uri.joinPath(uri, 'AGENTS.md'));
-  },
-
-  /**
    * Generate an 8-character MD5 hash for a workspace path
    * @param workspacePath - The workspace path to hash
    * @returns 8-character hexadecimal hash string

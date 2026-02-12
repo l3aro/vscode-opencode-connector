@@ -14,11 +14,7 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
     - *No more copy-pasting code blocks.*
     - *No more manually typing file paths.*
 
-2.  **Visualized Memory (`AGENTS.md`)**: OpenCode maintains a persistent memory of your session. This extension syncs that memory to a local `AGENTS.md` file in your workspace.
-    - *See the AI's current plan and context evolve in real-time right in your file explorer.*
-    - *Reference the plan without leaving your editor.*
-
-3.  **Seamless Process Management**:
+2.  **Seamless Process Management**:
     - *Auto-Discovery*: The extension automatically finds running OpenCode instances serving your current workspace.
     - *Auto-Spawn*: If no instance is running, it spawns one for you in the integrated terminal.
     - *One command to rule them all.*
@@ -27,7 +23,6 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 
 - **`Opencode: Add File to Prompt`**: Instantly send the current file reference (e.g., `@src/main.ts#L10-L20`) to the running TUI session.
 - **Automatic Context Sync**: Keeps the AI informed of your active document, selection, and diagnostics.
-- **Memory Sync**: Periodically writes the AI's session state to `AGENTS.md`.
 - **Integrated Terminal**: Runs the OpenCode TUI directly within VS Code's terminal panel.
 
 ## Usage
@@ -36,7 +31,6 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 2.  Run the command **`Opencode: Check Instance`** (or just start working).
 3.  The extension will find or spawn an OpenCode TUI session.
 4.  Use **`Opencode: Add File to Prompt`** to reference your current code in the TUI.
-5.  Watch `AGENTS.md` update as you collaborate with the AI.
 
 ## Requirements
 
