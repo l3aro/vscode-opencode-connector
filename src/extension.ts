@@ -436,19 +436,12 @@ function registerCommands(): void {
   const explainAndFixCommand = vscode.commands.registerCommand(
     'opencodeConnector.explainAndFix',
     async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
-      if (!openCodeClient) {
-        const connected = await ensureConnected();
-        if (!connected) {
-          const msg = lastAutoSpawnError
-            ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
-            : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
-          await vscode.window.showErrorMessage(msg);
-          return;
-        }
-      }
-
-      if (!openCodeClient) {
-        await vscode.window.showErrorMessage('OpenCode client not available');
+      const connected = await ensureConnected();
+      if (!connected || !openCodeClient) {
+        const msg = lastAutoSpawnError
+          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+        await vscode.window.showErrorMessage(msg);
         return;
       }
 
@@ -471,19 +464,12 @@ function registerCommands(): void {
   const opencodeExplainAndFixCommand = vscode.commands.registerCommand(
     'opencode.explainAndFix',
     async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
-      if (!openCodeClient) {
-        const connected = await ensureConnected();
-        if (!connected) {
-          const msg = lastAutoSpawnError
-            ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
-            : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
-          await vscode.window.showErrorMessage(msg);
-          return;
-        }
-      }
-
-      if (!openCodeClient) {
-        await vscode.window.showErrorMessage('OpenCode client not available');
+      const connected = await ensureConnected();
+      if (!connected || !openCodeClient) {
+        const msg = lastAutoSpawnError
+          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+        await vscode.window.showErrorMessage(msg);
         return;
       }
 
