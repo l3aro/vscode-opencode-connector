@@ -384,49 +384,73 @@ export class InstanceManager {
   }
 
   /**
-   * Scan for OpenCode processes on Windows via PowerShell
+   * Scan for OpenCode processes on Windows using native commands.
+   * Runs tasklist + netstat in parallel (~200-300ms) instead of PowerShell (~1-2s).
    */
   private scanProcessesWindows(): Promise<DiscoveredProcess[]> {
     return new Promise((resolve) => {
-      const psScript = `
-Get-Process -Name '*opencode*' -ErrorAction SilentlyContinue |
-ForEach-Object {
-  $ports = Get-NetTCPConnection -State Listen -OwningProcess $_.Id -ErrorAction SilentlyContinue
-  if ($ports) {
-    foreach ($port in $ports) {
-      [PSCustomObject]@{pid=$_.Id; port=$port.LocalPort}
-    }
-  }
-} | ConvertTo-Json -Compress
-`.trim();
+      let tasklistOut = '';
+      let netstatOut = '';
+      let completed = 0;
+      let errored = 0;
 
-      const ps = child_process.spawn('powershell', ['-NoProfile', '-Command', psScript]);
-      let stdout = '';
+      const checkComplete = (): void => {
+        completed++;
+        if (completed < 2) return;
 
-      ps.stdout.on('data', (data) => { stdout += data.toString(); });
-      ps.on('error', () => resolve([]));
-      ps.on('close', () => {
-        const trimmed = stdout.trim();
-        if (!trimmed) {
+        if (errored >= 2) {
           resolve([]);
           return;
         }
 
-        try {
-          const parsed = JSON.parse(trimmed);
-          // PowerShell returns a single object (not array) when only one result
-          const items = Array.isArray(parsed) ? parsed : [parsed];
-          const results: DiscoveredProcess[] = items
-            .filter((item: { pid?: number; port?: number }) => item.pid && item.port)
-            .map((item: { pid: number; port: number }) => ({
-              pid: item.pid,
-              port: item.port,
-            }));
-          resolve(results);
-        } catch {
-          resolve([]);
+        // Parse tasklist CSV — find PIDs of opencode processes
+        // CSV format: "ImageName","PID","SessionName","Session#","MemUsage"
+        const opencodePids = new Set<number>();
+        for (const line of tasklistOut.split('\n')) {
+          if (line.toLowerCase().includes('opencode')) {
+            const csvParts = line.split('","');
+            if (csvParts.length >= 2) {
+              const pid = parseInt(csvParts[1], 10);
+              if (!isNaN(pid)) {
+                opencodePids.add(pid);
+              }
+            }
+          }
         }
-      });
+
+        if (opencodePids.size === 0) {
+          resolve([]);
+          return;
+        }
+
+        // Parse netstat — find listening ports for those PIDs
+        // Format: TCP    127.0.0.1:4096    0.0.0.0:0    LISTENING    12345
+        const results: DiscoveredProcess[] = [];
+        for (const line of netstatOut.split('\n')) {
+          if (!line.includes('LISTENING')) continue;
+          const parts = line.trim().split(/\s+/);
+          const pid = parseInt(parts[parts.length - 1], 10);
+          if (opencodePids.has(pid)) {
+            const addrPart = parts[1];
+            const portMatch = addrPart?.match(/:(\d+)$/);
+            if (portMatch) {
+              results.push({ pid, port: parseInt(portMatch[1], 10) });
+            }
+          }
+        }
+        resolve(results);
+      };
+
+      // Run both commands in parallel for speed
+      const tasklist = child_process.spawn('cmd', ['/c', 'tasklist /FO CSV /NH']);
+      tasklist.stdout.on('data', (d) => { tasklistOut += d.toString(); });
+      tasklist.on('error', () => { errored++; checkComplete(); });
+      tasklist.on('close', () => checkComplete());
+
+      const netstat = child_process.spawn('cmd', ['/c', 'netstat -ano -p TCP']);
+      netstat.stdout.on('data', (d) => { netstatOut += d.toString(); });
+      netstat.on('error', () => { errored++; checkComplete(); });
+      netstat.on('close', () => checkComplete());
     });
   }
 

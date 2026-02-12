@@ -480,14 +480,16 @@ export class OpenCodeClient {
   // ---------------------------------------------------------------------------
 
   /**
-   * Test connection with a single attempt (no retries)
-   * Useful for quick connectivity checks
+   * Test connection with a single attempt (no retries).
+   * Uses a raw axios call to bypass the retry interceptor on this.client,
+   * so a dead port returns false immediately instead of burning ~3.5s in retries.
    * @returns Promise<boolean>
    */
   public async testConnection(): Promise<boolean> {
     try {
-      await this.client.get('/global/health', {
-        timeout: 5000,
+      await axios.get(`${this.baseUrl}/global/health`, {
+        timeout: 2000,
+        headers: { 'Accept': 'application/json' },
       });
       return true;
     } catch {

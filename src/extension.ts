@@ -53,7 +53,7 @@ async function discoverAndConnect(): Promise<boolean> {
   // For each port, verify it's an OpenCode server serving our directory
   for (const port of uniquePorts) {
     try {
-      const tempClient = new OpenCodeClient({ port, timeout: 3000 });
+      const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
       const pathInfo = await tempClient.getPath();
       tempClient.destroy();
 
@@ -179,6 +179,11 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     // Register workspace change handler
     registerWorkspaceHandlers();
 
+    // Eagerly discover and connect in background so first command is instant
+    discoverAndConnect().catch(() => {
+      // Silently ignore — ensureConnected() will retry on-demand
+    });
+
     console.log('OpenCode Connector fully initialized');
   } catch (err) {
     console.error(`Failed to initialize OpenCode Connector: ${(err as Error).message}`);
@@ -190,31 +195,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
  * Register VSCode commands
  */
 function registerCommands(): void {
-  // Connect to OpenCode command
-  const connectCommand = vscode.commands.registerCommand(
-    'opencodeConnector.connect',
-    async () => {
-      const connected = await ensureConnected();
-      if (!connected || !openCodeClient) {
-        await vscode.window.showErrorMessage(
-          'No OpenCode instance found. Run `opencode --port <port>` in your project directory.'
-        );
-        return;
-      }
-
-      try {
-        const health = await openCodeClient.getHealth();
-        await vscode.window.showInformationMessage(
-          `OpenCode: Connected on port ${openCodeClient.getPort()} (v${health.version})`
-        );
-      } catch (err) {
-        await vscode.window.showErrorMessage(
-          `Connection failed: ${(err as Error).message}`
-        );
-      }
-    }
-  );
-
   // Force sync AGENTS.md command
   const syncCommand = vscode.commands.registerCommand(
     'opencodeConnector.syncAgents',
@@ -290,30 +270,6 @@ function registerCommands(): void {
   );
 
   // Alias commands with 'opencode.' prefix (same handlers as 'opencodeConnector.' prefix)
-  const opencodeConnectCommand = vscode.commands.registerCommand(
-    'opencode.connect',
-    async () => {
-      const connected = await ensureConnected();
-      if (!connected || !openCodeClient) {
-        await vscode.window.showErrorMessage(
-          'No OpenCode instance found. Run `opencode --port <port>` in your project directory.'
-        );
-        return;
-      }
-
-      try {
-        const health = await openCodeClient.getHealth();
-        await vscode.window.showInformationMessage(
-          `OpenCode: Connected on port ${openCodeClient.getPort()} (v${health.version})`
-        );
-      } catch (err) {
-        await vscode.window.showErrorMessage(
-          `Connection failed: ${(err as Error).message}`
-        );
-      }
-    }
-  );
-
   const opencodeSyncAgentsCommand = vscode.commands.registerCommand(
     'opencode.syncAgents',
     async () => {
@@ -444,11 +400,9 @@ function registerCommands(): void {
 
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions.push(
-    connectCommand,
     syncCommand,
     statusCommand,
     workspaceCommand,
-    opencodeConnectCommand,
     opencodeSyncAgentsCommand,
     opencodeCheckInstanceCommand,
     opencodeShowWorkspaceCommand,
