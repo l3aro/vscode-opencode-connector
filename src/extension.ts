@@ -227,7 +227,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     });
 
     // Wire context manager - state tracked internally, sent to OpenCode via explicit commands
-    contextManager.initialize(_state => {
+    contextManager.initialize(() => {
       // State tracked internally - sent to OpenCode via explicit commands
     });
 

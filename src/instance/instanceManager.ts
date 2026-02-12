@@ -108,7 +108,7 @@ export class InstanceManager {
    * Reset the singleton instance (useful for testing)
    */
   public static resetInstance(): void {
-    InstanceManager.instance = undefined as any;
+    InstanceManager.instance = undefined as unknown as InstanceManager;
   }
 
   /**
@@ -144,22 +144,22 @@ export class InstanceManager {
         });
       });
 
-      socket.on('error', err => {
+      socket.on('error', (err: Error & { code?: string }) => {
         // Handle different error types
-        if ((err as any).code === 'EADDRINUSE') {
+        if (err.code === 'EADDRINUSE') {
           // Port is in use by another process
           resolve({
             isRunning: true,
             port: targetPort,
           });
-        } else if ((err as any).code === 'ECONNREFUSED') {
+        } else if (err.code === 'ECONNREFUSED') {
           // Connection refused - nothing listening on this port
           resolve({
             isRunning: false,
             port: targetPort,
             error: 'Connection refused',
           });
-        } else if ((err as any).code === 'ENOTFOUND') {
+        } else if (err.code === 'ENOTFOUND') {
           // Host not found - invalid hostname
           resolve({
             isRunning: false,
@@ -520,10 +520,10 @@ export class InstanceManager {
         resolve(true);
       });
 
-      socket.on('error', err => {
+      socket.on('error', (err: Error & { code?: string }) => {
         // Connection refused means port is available
         // EADDRINUSE would mean port is in use (but connect event should catch this)
-        if ((err as any).code === 'ECONNREFUSED') {
+        if (err.code === 'ECONNREFUSED') {
           socket.destroy();
           resolve(true);
         } else {
@@ -643,12 +643,12 @@ export function checkInstanceSync(port: number, timeoutMs: number = 2000): Insta
     completeCheck(false, 'Connection timed out');
   });
 
-  socket.on('error', err => {
-    if ((err as any).code === 'EADDRINUSE') {
+  socket.on('error', (err: Error & { code?: string }) => {
+    if (err.code === 'EADDRINUSE') {
       completeCheck(true);
-    } else if ((err as any).code === 'ECONNREFUSED') {
+    } else if (err.code === 'ECONNREFUSED') {
       completeCheck(false, 'Connection refused');
-    } else if ((err as any).code === 'ENOTFOUND') {
+    } else if (err.code === 'ENOTFOUND') {
       completeCheck(false, 'Host not found');
     } else {
       completeCheck(false, err.message);

@@ -101,9 +101,9 @@ export function debounceWithOptions<T extends (...args: unknown[]) => void>(
   let leadingExecuted = false;
 
   return function (this: ThisParameterType<T>, ...args: Parameters<T>): void {
-    const context = this;
     lastArgs = args;
-    lastThis = context;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    lastThis = this;
 
     // Clear existing timeout
     if (timeoutId !== undefined) {
@@ -112,7 +112,7 @@ export function debounceWithOptions<T extends (...args: unknown[]) => void>(
 
     // Leading edge execution
     if (leading && !leadingExecuted) {
-      func.apply(context, args);
+      func.apply(this, args);
       leadingExecuted = true;
     }
 
@@ -145,8 +145,9 @@ export function isDebounceWaiting<T extends (...args: unknown[]) => void>(
 ): boolean {
   // We use a Symbol to store the timeout ID on the function
   const timeoutSymbol = Symbol('debounceTimeout');
-  const funcAny = debouncedFunc as any;
-  return funcAny[timeoutSymbol] !== undefined && funcAny[timeoutSymbol] !== null;
+  type FuncWithTimeout = { [key: symbol]: ReturnType<typeof setTimeout> | undefined };
+  const funcWithTimeout = debouncedFunc as unknown as FuncWithTimeout;
+  return funcWithTimeout[timeoutSymbol] !== undefined && funcWithTimeout[timeoutSymbol] !== null;
 }
 
 /**
@@ -159,11 +160,12 @@ export function cancelDebounce<T extends (...args: unknown[]) => void>(
 ): void {
   // We use a Symbol to store the timeout ID on the function
   const timeoutSymbol = Symbol('debounceTimeout');
-  const funcAny = debouncedFunc as any;
+  type FuncWithTimeout = { [key: symbol]: ReturnType<typeof setTimeout> | undefined };
+  const funcWithTimeout = debouncedFunc as unknown as FuncWithTimeout;
 
-  if (funcAny[timeoutSymbol] !== undefined) {
-    clearTimeout(funcAny[timeoutSymbol]);
-    funcAny[timeoutSymbol] = undefined;
+  if (funcWithTimeout[timeoutSymbol] !== undefined) {
+    clearTimeout(funcWithTimeout[timeoutSymbol]);
+    funcWithTimeout[timeoutSymbol] = undefined;
   }
 }
 
@@ -177,13 +179,12 @@ export function flushDebounce<T extends (...args: unknown[]) => void>(
   debouncedFunc: (...args: Parameters<T>) => void
 ): boolean {
   const timeoutSymbol = Symbol('debounceTimeout');
-  const funcAny = debouncedFunc as any;
+  type FuncWithTimeout = { [key: symbol]: ReturnType<typeof setTimeout> | undefined };
+  const funcWithTimeout = debouncedFunc as unknown as FuncWithTimeout;
 
-  if (funcAny[timeoutSymbol] !== undefined) {
-    clearTimeout(funcAny[timeoutSymbol]);
-    // Note: We can't easily execute the pending function here without modifying
-    // the original debounce implementation to store the function reference
-    funcAny[timeoutSymbol] = undefined;
+  if (funcWithTimeout[timeoutSymbol] !== undefined) {
+    clearTimeout(funcWithTimeout[timeoutSymbol]);
+    funcWithTimeout[timeoutSymbol] = undefined;
     return true;
   }
   return false;

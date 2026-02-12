@@ -9,7 +9,7 @@ import {
   EditorSelectionState,
   EditorState,
 } from '../types';
-import { debounce } from '../utils/debounce';
+import { cancelDebounce, debounce } from '../utils/debounce';
 
 import * as vscode from 'vscode';
 
@@ -447,12 +447,7 @@ export class ContextManager {
   public dispose(): void {
     // Cancel any pending debounced updates
     if (this.debouncedUpdate) {
-      const timeoutSymbol = Symbol('debounceTimeout');
-      const funcAny = this.debouncedUpdate as any;
-      if (funcAny[timeoutSymbol] !== undefined) {
-        clearTimeout(funcAny[timeoutSymbol]);
-        funcAny[timeoutSymbol] = undefined;
-      }
+      cancelDebounce(this.debouncedUpdate);
     }
 
     // Dispose all subscriptions
