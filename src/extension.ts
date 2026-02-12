@@ -6,6 +6,10 @@ import { OpenCodeClient } from './api/openCodeClient';
 import { ConfigManager } from './config';
 import { ContextManager } from './context/contextManager';
 import { InstanceManager } from './instance/instanceManager';
+import {
+  OpenCodeCodeActionProvider,
+  formatPromptForDiagnostic,
+} from './providers/codeActionProvider';
 import { WorkspaceUtils } from './utils/workspace';
 
 import * as vscode from 'vscode';
@@ -247,6 +251,16 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     // Register extension commands
     registerCommands();
 
+    // Register CodeActionProvider for all languages
+    const codeActionProvider = vscode.languages.registerCodeActionsProvider(
+      '*',
+      new OpenCodeCodeActionProvider(),
+      {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+      }
+    );
+    extensionContext?.subscriptions.push(codeActionProvider);
+
     // Register workspace change handler
     registerWorkspaceHandlers();
 
@@ -418,6 +432,76 @@ function registerCommands(): void {
     }
   );
 
+  // Explain and Fix code action command
+  const explainAndFixCommand = vscode.commands.registerCommand(
+    'opencodeConnector.explainAndFix',
+    async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
+      if (!openCodeClient) {
+        const connected = await ensureConnected();
+        if (!connected) {
+          const msg = lastAutoSpawnError
+            ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+            : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+          await vscode.window.showErrorMessage(msg);
+          return;
+        }
+      }
+
+      if (!openCodeClient) {
+        await vscode.window.showErrorMessage('OpenCode client not available');
+        return;
+      }
+
+      try {
+        // Format the prompt using the diagnostic
+        const prompt = formatPromptForDiagnostic(diagnostic, uri, uriInfo =>
+          vscode.workspace.asRelativePath(uriInfo.fsPath)
+        );
+        await openCodeClient.appendPrompt(prompt);
+        showTransientNotification(`Sent explanation request for diagnostic`);
+      } catch (err) {
+        await vscode.window.showErrorMessage(
+          `Failed to send explanation: ${(err as Error).message}`
+        );
+      }
+    }
+  );
+
+  // Alias explainAndFix command with 'opencode.' prefix
+  const opencodeExplainAndFixCommand = vscode.commands.registerCommand(
+    'opencode.explainAndFix',
+    async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
+      if (!openCodeClient) {
+        const connected = await ensureConnected();
+        if (!connected) {
+          const msg = lastAutoSpawnError
+            ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+            : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+          await vscode.window.showErrorMessage(msg);
+          return;
+        }
+      }
+
+      if (!openCodeClient) {
+        await vscode.window.showErrorMessage('OpenCode client not available');
+        return;
+      }
+
+      try {
+        // Format the prompt using the diagnostic
+        const prompt = formatPromptForDiagnostic(diagnostic, uri, uriInfo =>
+          vscode.workspace.asRelativePath(uriInfo.fsPath)
+        );
+        await openCodeClient.appendPrompt(prompt);
+        showTransientNotification(`Sent explanation request for diagnostic`);
+      } catch (err) {
+        await vscode.window.showErrorMessage(
+          `Failed to send explanation: ${(err as Error).message}`
+        );
+      }
+    }
+  );
+
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions.push(
     statusCommand,
@@ -425,7 +509,9 @@ function registerCommands(): void {
     opencodeCheckInstanceCommand,
     opencodeShowWorkspaceCommand,
     addFileCommand,
-    opencodeAddFileCommand
+    opencodeAddFileCommand,
+    explainAndFixCommand,
+    opencodeExplainAndFixCommand
   );
 }
 

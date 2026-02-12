@@ -62,11 +62,33 @@ export class ConfigManager {
    * Get default configuration values.
    * @returns Object containing default values
    */
-  public getDefaults(): { port: number; binaryPath: string } {
+  public getDefaults(): { port: number; binaryPath: string; codeActionSeverityLevels: string[] } {
     return {
       port: 4096,
       binaryPath: '',
+      codeActionSeverityLevels: ['error', 'warning', 'information', 'hint'],
     };
+  }
+
+  /**
+   * Get code action severity levels.
+   * @returns Array of severity levels that should trigger the "Explain and Fix" code action
+   */
+  public getCodeActionSeverityLevels(): string[] {
+    const config = vscode.workspace.getConfiguration('opencode');
+    return (
+      config.get<string[]>('codeAction.severityLevels') ??
+      this.getDefaults().codeActionSeverityLevels
+    );
+  }
+
+  /**
+   * Set code action severity levels.
+   * @param levels - Array of severity levels
+   */
+  public setCodeActionSeverityLevels(levels: string[]): Thenable<void> {
+    const config = vscode.workspace.getConfiguration('opencode');
+    return config.update('codeAction.severityLevels', levels, vscode.ConfigurationTarget.Global);
   }
 }
 

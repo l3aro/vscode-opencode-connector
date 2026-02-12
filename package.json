@@ -19,6 +19,14 @@
       {
         "command": "opencodeConnector.addToPrompt",
         "title": "OpenCodeConnector: Add to Prompt"
+      },
+      {
+        "command": "opencodeConnector.explainAndFix",
+        "title": "Explain and Fix (OpenCode)"
+      },
+      {
+        "command": "opencode.explainAndFix",
+        "title": "Explain and Fix (OpenCode)"
       }
     ],
     "keybindings": [
@@ -42,6 +50,25 @@
           "type": "string",
           "default": "",
           "description": "Path to OpenCode binary"
+        },
+        "opencode.codeAction.severityLevels": {
+          "type": "array",
+          "default": [
+            "error",
+            "warning",
+            "information",
+            "hint"
+          ],
+          "description": "Diagnostic severity levels that trigger the 'Explain and Fix' code action",
+          "items": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "information",
+              "hint"
+            ]
+          }
         }
       }
     }
