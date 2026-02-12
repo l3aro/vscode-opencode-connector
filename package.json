@@ -2,8 +2,14 @@
   "name": "opencode-connector",
   "displayName": "OpenCode Connector",
   "description": "VSCode-based extension for connecting to OpenCode",
+  "publisher": "l3aro",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/l3aro/vscode-opencode-connector.git"
+  },
   "icon": "resources/icon.png",
   "version": "0.0.1",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.94.0",
     "windsurf": "^1.0.0"
