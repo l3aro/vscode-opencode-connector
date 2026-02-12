@@ -1,10 +1,9 @@
 /**
  * VSCode Integration Test Suite Index
  */
-
-import * as path from 'path';
-import Mocha from 'mocha';
 import { globSync } from 'glob';
+import Mocha from 'mocha';
+import * as path from 'path';
 
 function run(): Promise<void> {
   return new Promise((resolve, reject) => {

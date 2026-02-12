@@ -2,12 +2,12 @@
  * AGENTS.md Sync Module for OpenCode VSCode extension
  * Handles periodic synchronization of memory/context to AGENTS.md files
  */
-
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 import { OpenCodeClient } from '../api/openCodeClient';
 import { WorkspaceUtils } from '../utils/workspace';
+
+import * as fs from 'fs';
+import * as path from 'path';
+import * as vscode from 'vscode';
 
 /**
  * Type for setInterval/clearInterval to handle cross-environment compatibility
@@ -70,10 +70,7 @@ export class AgentsSyncManager {
    * @param openCodeClient - OpenCode client for API communication
    * @param config - Optional configuration overrides
    */
-  constructor(
-    openCodeClient: OpenCodeClient | null,
-    config: AgentsSyncConfig = {}
-  ) {
+  constructor(openCodeClient: OpenCodeClient | null, config: AgentsSyncConfig = {}) {
     this.openCodeClient = openCodeClient;
 
     this.config = {
@@ -105,7 +102,7 @@ export class AgentsSyncManager {
     }
 
     // Perform initial sync
-    this.performSync().catch((err) => {
+    this.performSync().catch(err => {
       this.log(`Initial sync failed: ${err.message}`);
     });
   }
@@ -160,9 +157,7 @@ export class AgentsSyncManager {
 
       // Get AGENTS.md paths
       const agentsPaths = this.config.syncToAllRoots
-        ? workspaceInfo.rootUris.map((uri) =>
-            WorkspaceUtils.getAgentsMdPath(uri)
-          )
+        ? workspaceInfo.rootUris.map(uri => WorkspaceUtils.getAgentsMdPath(uri))
         : [WorkspaceUtils.getAgentsMdPath(workspaceInfo.primaryRoot?.uri.toString() || '')];
 
       // Fetch memory from OpenCode if client is available
@@ -266,25 +261,23 @@ export class AgentsSyncManager {
       this.saveSubscription.dispose();
     }
 
-    this.saveSubscription = vscode.workspace.onDidSaveTextDocument(
-      async (document) => {
-        // Only sync on save if it's in a workspace
-        if (!document.uri.fsPath) return;
+    this.saveSubscription = vscode.workspace.onDidSaveTextDocument(async document => {
+      // Only sync on save if it's in a workspace
+      if (!document.uri.fsPath) return;
 
-        const workspaceInfo = WorkspaceUtils.detectWorkspace();
-        if (!workspaceInfo.isWorkspaceOpen) return;
+      const workspaceInfo = WorkspaceUtils.detectWorkspace();
+      if (!workspaceInfo.isWorkspaceOpen) return;
 
-        // Check if saved document is in workspace
-        if (WorkspaceUtils.isFileInWorkspace(document.uri)) {
-          this.log(`Document saved: ${document.uri.fsPath}`);
-          try {
-            await this.performSync();
-          } catch (err) {
-            this.log(`Save sync error: ${(err as Error).message}`);
-          }
+      // Check if saved document is in workspace
+      if (WorkspaceUtils.isFileInWorkspace(document.uri)) {
+        this.log(`Document saved: ${document.uri.fsPath}`);
+        try {
+          await this.performSync();
+        } catch (err) {
+          this.log(`Save sync error: ${(err as Error).message}`);
         }
       }
-    );
+    });
 
     this.log('Save handler registered');
   }
@@ -346,14 +339,14 @@ This file is automatically synced by the OpenCode Connector extension.
       // Ensure directory exists
       const dir = path.dirname(filePath);
 
-      fs.mkdir(dir, { recursive: true }, (mkdirErr) => {
+      fs.mkdir(dir, { recursive: true }, mkdirErr => {
         if (mkdirErr) {
           reject(mkdirErr);
           return;
         }
 
         // Write the file
-        fs.writeFile(filePath, content, 'utf8', (writeErr) => {
+        fs.writeFile(filePath, content, 'utf8', writeErr => {
           if (writeErr) {
             reject(writeErr);
             return;

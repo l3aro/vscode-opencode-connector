@@ -2,8 +2,7 @@
  * Unit tests for ContextManager types and configuration
  * Tests the exported types without requiring VS Code module
  */
-
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('ContextManager Types', () => {
   describe('StateUpdateCallback', () => {
@@ -37,7 +36,7 @@ describe('ContextManager Types', () => {
       }
 
       // Should accept a function with this signature
-      const callback: (state: MockState) => void = (state) => {
+      const callback: (state: MockState) => void = state => {
         expect(state).toBeDefined();
       };
 

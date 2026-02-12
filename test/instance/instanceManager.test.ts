@@ -1,11 +1,15 @@
 /**
  * Tests for InstanceManager
  */
-
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { InstanceManager, PlatformUtils, checkInstanceSync } from '../../src/instance/instanceManager';
 import { ConfigManager } from '../../src/config';
+import {
+  InstanceManager,
+  PlatformUtils,
+  checkInstanceSync,
+} from '../../src/instance/instanceManager';
+
 import * as net from 'net';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock vscode module
 const mockVscode = {
@@ -26,7 +30,10 @@ const mockVscode = {
 vi.mock('vscode', () => mockVscode);
 
 // Mock config manager factory
-const createMockConfigManager = (port: number = 3000, binaryPath: string = 'opencode'): ConfigManager => {
+const createMockConfigManager = (
+  port: number = 3000,
+  binaryPath: string = 'opencode'
+): ConfigManager => {
   return {
     getPort: () => port,
     getBinaryPath: () => binaryPath,

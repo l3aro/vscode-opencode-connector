@@ -2,16 +2,16 @@
  * Context Manager - Aggregates editor state and sends to OpenCode
  * Subscribes to VS Code events and debounces state updates
  */
-
-import * as vscode from 'vscode';
-import { debounce } from '../utils/debounce';
 import {
-  EditorState,
-  EditorDocumentState,
-  EditorSelectionState,
   DiagnosticInfo,
   DocumentDiagnostics,
+  EditorDocumentState,
+  EditorSelectionState,
+  EditorState,
 } from '../types';
+import { debounce } from '../utils/debounce';
+
+import * as vscode from 'vscode';
 
 /**
  * Configuration options for ContextManager
@@ -47,7 +47,7 @@ export type StateUpdateCallback = (state: EditorState) => void;
 
 /**
  * Context Manager - Aggregates editor state and sends to OpenCode
- * 
+ *
  * Responsibilities:
  * - Subscribe to VS Code events (text changes, selections, diagnostics)
  * - Debounce state updates to avoid flooding
@@ -100,7 +100,7 @@ export class ContextManager {
     // Text document change events
     if (this.config.trackDocuments) {
       const textDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
-        (event) => this.handleTextDocumentChange(event),
+        event => this.handleTextDocumentChange(event),
         this
       );
       this.subscriptions.push(textDocumentSubscription);
@@ -109,7 +109,7 @@ export class ContextManager {
     // Text editor selection change events
     if (this.config.trackSelection) {
       const textEditorSelectionSubscription = vscode.window.onDidChangeTextEditorSelection(
-        (event) => this.handleTextEditorSelectionChange(event),
+        event => this.handleTextEditorSelectionChange(event),
         this
       );
       this.subscriptions.push(textEditorSelectionSubscription);
@@ -117,14 +117,14 @@ export class ContextManager {
 
     // Active editor change events
     const activeEditorSubscription = vscode.window.onDidChangeActiveTextEditor(
-      (editor) => this.handleActiveEditorChange(editor),
+      editor => this.handleActiveEditorChange(editor),
       this
     );
     this.subscriptions.push(activeEditorSubscription);
 
     // Visible editors change events
     const visibleEditorsSubscription = vscode.window.onDidChangeVisibleTextEditors(
-      (editors) => this.handleVisibleEditorsChange(editors),
+      editors => this.handleVisibleEditorsChange(editors),
       this
     );
     this.subscriptions.push(visibleEditorsSubscription);
@@ -132,21 +132,18 @@ export class ContextManager {
     // Diagnostic change events
     if (this.config.trackDiagnostics) {
       const diagnosticSubscription = vscode.languages.onDidChangeDiagnostics(
-        (event) => this.handleDiagnosticsChange(event),
+        event => this.handleDiagnosticsChange(event),
         this
       );
       this.subscriptions.push(diagnosticSubscription);
     }
 
     // Window state change (e.g., when VS Code gains focus)
-    const windowStateSubscription = vscode.window.onDidChangeWindowState(
-      (state) => {
-        if (state.focused) {
-          this.triggerUpdate();
-        }
-      },
-      this
-    );
+    const windowStateSubscription = vscode.window.onDidChangeWindowState(state => {
+      if (state.focused) {
+        this.triggerUpdate();
+      }
+    }, this);
     this.subscriptions.push(windowStateSubscription);
   }
 
@@ -156,9 +153,9 @@ export class ContextManager {
   private handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): void {
     // Only track visible editors
     const editor = vscode.window.visibleTextEditors.find(
-      (e) => e.document.uri.toString() === event.document.uri.toString()
+      e => e.document.uri.toString() === event.document.uri.toString()
     );
-    
+
     if (editor) {
       this.visibleEditors.set(event.document.uri.toString(), editor);
       this.triggerUpdate();
@@ -191,7 +188,7 @@ export class ContextManager {
   private handleVisibleEditorsChange(editors: readonly vscode.TextEditor[]): void {
     // Update the visible editors map
     this.visibleEditors.clear();
-    
+
     // Limit to max visible editors for performance
     let count = 0;
     for (const editor of editors) {
@@ -210,9 +207,7 @@ export class ContextManager {
    */
   private handleDiagnosticsChange(event: vscode.DiagnosticChangeEvent): void {
     // Only trigger update if diagnostics changed for visible documents
-    const hasVisibleDiagnostics = event.uris.some((uri) =>
-      this.visibleEditors.has(uri.toString())
-    );
+    const hasVisibleDiagnostics = event.uris.some(uri => this.visibleEditors.has(uri.toString()));
 
     if (hasVisibleDiagnostics) {
       this.triggerUpdate();
@@ -282,7 +277,7 @@ export class ContextManager {
    */
   private extractDocumentState(editor: vscode.TextEditor): EditorDocumentState {
     const document = editor.document;
-    
+
     return {
       uri: document.uri.toString(),
       fileName: document.fileName,
@@ -298,7 +293,7 @@ export class ContextManager {
    */
   private extractSelectionState(): EditorSelectionState {
     const activeEditor = vscode.window.activeTextEditor;
-    
+
     if (!activeEditor || !this.visibleEditors.has(activeEditor.document.uri.toString())) {
       // Return empty selection state
       return {
@@ -346,8 +341,8 @@ export class ContextManager {
     for (const editor of this.visibleEditors.values()) {
       const uri = editor.document.uri.toString();
       const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
-      
-      const diagnosticInfos: DiagnosticInfo[] = diagnostics.map((diag) => ({
+
+      const diagnosticInfos: DiagnosticInfo[] = diagnostics.map(diag => ({
         message: diag.message,
         severity: this.mapDiagnosticSeverity(diag.severity),
         source: diag.source,

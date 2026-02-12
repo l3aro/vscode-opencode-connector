@@ -4,8 +4,22 @@
  * Tests the HTTP client that communicates with the OpenCode server API.
  * Uses vitest mocks for axios and axios-retry to test in isolation.
  */
+import {
+  OpenCodeClientError,
+  OpenCodeConnectionTimeoutError,
+  OpenCodeInvalidResponseError,
+  OpenCodeServerError,
+  OpenCodeUnavailableError,
+} from '../../src/api/errors';
+import { OpenCodeClient } from '../../src/api/openCodeClient';
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// ---------------------------------------------------------------------------
+// Imports (resolved against mocks above)
+// ---------------------------------------------------------------------------
+
+import axios from 'axios';
+import axiosRetry from 'axios-retry';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks (hoisted before all imports)
@@ -28,7 +42,7 @@ vi.mock('axios', () => {
       code?: string,
       config?: Record<string, unknown>,
       _request?: unknown,
-      response?: { status: number; data?: unknown },
+      response?: { status: number; data?: unknown }
     ) {
       super(message);
       this.name = 'AxiosError';
@@ -54,21 +68,6 @@ vi.mock('axios', () => {
   };
 });
 
-// ---------------------------------------------------------------------------
-// Imports (resolved against mocks above)
-// ---------------------------------------------------------------------------
-
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
-import { OpenCodeClient } from '../../src/api/openCodeClient';
-import {
-  OpenCodeUnavailableError,
-  OpenCodeConnectionTimeoutError,
-  OpenCodeClientError,
-  OpenCodeServerError,
-  OpenCodeInvalidResponseError,
-} from '../../src/api/errors';
-
 // Mocked AxiosError constructor — same class that errors.ts sees via axios.AxiosError
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MockAxiosError = (axios as any).AxiosError as new (
@@ -76,7 +75,7 @@ const MockAxiosError = (axios as any).AxiosError as new (
   code?: string,
   config?: Record<string, unknown>,
   request?: unknown,
-  response?: { status: number; data?: unknown },
+  response?: { status: number; data?: unknown }
 ) => Error & {
   code?: string;
   response?: { status: number; data?: unknown };
@@ -117,13 +116,10 @@ describe('OpenCodeClient', () => {
 
   /** Create a mock HTTP error (with status code) */
   function httpError(status: number, url = '/test', data: unknown = {}) {
-    return new MockAxiosError(
-      `HTTP ${status}`,
-      'ERR_BAD_RESPONSE',
-      { url },
-      undefined,
-      { status, data },
-    );
+    return new MockAxiosError(`HTTP ${status}`, 'ERR_BAD_RESPONSE', { url }, undefined, {
+      status,
+      data,
+    });
   }
 
   // -- setup ------------------------------------------------------------------
@@ -190,21 +186,19 @@ describe('OpenCodeClient', () => {
     it('throws OpenCodeUnavailableError on ECONNREFUSED', () => {
       createClient();
       expect(() => errorInterceptor(networkError('ECONNREFUSED'))).toThrow(
-        OpenCodeUnavailableError,
+        OpenCodeUnavailableError
       );
     });
 
     it('throws OpenCodeUnavailableError on ECONNRESET', () => {
       createClient();
-      expect(() => errorInterceptor(networkError('ECONNRESET'))).toThrow(
-        OpenCodeUnavailableError,
-      );
+      expect(() => errorInterceptor(networkError('ECONNRESET'))).toThrow(OpenCodeUnavailableError);
     });
 
     it('throws OpenCodeConnectionTimeoutError on ETIMEDOUT', () => {
       createClient();
       expect(() => errorInterceptor(networkError('ETIMEDOUT'))).toThrow(
-        OpenCodeConnectionTimeoutError,
+        OpenCodeConnectionTimeoutError
       );
     });
   });
@@ -349,9 +343,7 @@ describe('OpenCodeClient', () => {
 
   describe('listCommands', () => {
     it('returns commands array on success', async () => {
-      const commands = [
-        { name: '/help', description: 'Show help', template: '', agent: 'coder' },
-      ];
+      const commands = [{ name: '/help', description: 'Show help', template: '', agent: 'coder' }];
       mockHttp.get.mockResolvedValueOnce({ data: commands });
 
       const client = createClient();
@@ -395,32 +387,26 @@ describe('OpenCodeClient', () => {
 
     it('transforms ECONNREFUSED to OpenCodeUnavailableError', () => {
       expect(() => errorInterceptor(networkError('ECONNREFUSED'))).toThrow(
-        OpenCodeUnavailableError,
+        OpenCodeUnavailableError
       );
     });
 
     it('transforms ECONNRESET to OpenCodeUnavailableError', () => {
-      expect(() => errorInterceptor(networkError('ECONNRESET'))).toThrow(
-        OpenCodeUnavailableError,
-      );
+      expect(() => errorInterceptor(networkError('ECONNRESET'))).toThrow(OpenCodeUnavailableError);
     });
 
     it('transforms ETIMEDOUT to OpenCodeConnectionTimeoutError', () => {
       expect(() => errorInterceptor(networkError('ETIMEDOUT'))).toThrow(
-        OpenCodeConnectionTimeoutError,
+        OpenCodeConnectionTimeoutError
       );
     });
 
     it('transforms 4xx to OpenCodeClientError', () => {
-      expect(() => errorInterceptor(httpError(404, '/session/xyz'))).toThrow(
-        OpenCodeClientError,
-      );
+      expect(() => errorInterceptor(httpError(404, '/session/xyz'))).toThrow(OpenCodeClientError);
     });
 
     it('transforms 5xx to OpenCodeServerError', () => {
-      expect(() => errorInterceptor(httpError(503, '/session'))).toThrow(
-        OpenCodeServerError,
-      );
+      expect(() => errorInterceptor(httpError(503, '/session'))).toThrow(OpenCodeServerError);
     });
   });
 

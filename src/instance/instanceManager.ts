@@ -2,12 +2,13 @@
  * Platform-aware Instance Manager for OpenCode
  * Handles detection of running instances and spawning new instances
  */
-
-import * as net from 'net';
 import * as child_process from 'child_process';
-import * as vscode from 'vscode';
+
 import { ConfigManager } from '../config';
 import { WorkspaceUtils } from '../utils/workspace';
+
+import * as net from 'net';
+import * as vscode from 'vscode';
 
 /**
  * Result of checking if an instance is running
@@ -118,7 +119,7 @@ export class InstanceManager {
   public async getRunningInstance(port?: number): Promise<InstanceCheckResult> {
     const targetPort = port ?? this.configManager.getPort();
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const socket = new net.Socket();
 
       // Set a timeout for the connection attempt
@@ -143,7 +144,7 @@ export class InstanceManager {
         });
       });
 
-      socket.on('error', (err) => {
+      socket.on('error', err => {
         // Handle different error types
         if ((err as any).code === 'EADDRINUSE') {
           // Port is in use by another process
@@ -208,7 +209,7 @@ export class InstanceManager {
       spawnOptions.shell = true;
     }
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let spawnedProcess: child_process.ChildProcess | undefined;
       let spawnResolved = false;
 
@@ -237,7 +238,7 @@ export class InstanceManager {
           if (spawnResolved) return;
           spawnResolved = true;
           clearTimeout(spawnTimeout);
-          
+
           // Unref the child process so it can run independently
           spawnedProcess?.unref();
 
@@ -248,7 +249,7 @@ export class InstanceManager {
         });
 
         // Handle spawn errors
-        spawnedProcess.on('error', (err) => {
+        spawnedProcess.on('error', err => {
           if (spawnResolved) return;
           spawnResolved = true;
           clearTimeout(spawnTimeout);
@@ -334,15 +335,21 @@ export class InstanceManager {
    * Scan for OpenCode processes on Unix (Linux/macOS)
    */
   private scanProcessesUnix(): Promise<DiscoveredProcess[]> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       // Find PIDs by command line pattern — filter for --port to avoid matching other opencode processes
       const pgrep = child_process.spawn('pgrep', ['-f', 'opencode.*--port']);
       let stdout = '';
 
-      pgrep.stdout.on('data', (data) => { stdout += data.toString(); });
+      pgrep.stdout.on('data', data => {
+        stdout += data.toString();
+      });
       pgrep.on('error', () => resolve([]));
       pgrep.on('close', () => {
-        const pids = stdout.trim().split('\n').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+        const pids = stdout
+          .trim()
+          .split('\n')
+          .map(s => parseInt(s.trim(), 10))
+          .filter(n => !isNaN(n));
         if (pids.length === 0) {
           resolve([]);
           return;
@@ -354,12 +361,24 @@ export class InstanceManager {
 
         for (const pid of pids) {
           const lsof = child_process.spawn('lsof', [
-            '-w', '-iTCP', '-sTCP:LISTEN', '-P', '-n', '-a', '-p', String(pid),
+            '-w',
+            '-iTCP',
+            '-sTCP:LISTEN',
+            '-P',
+            '-n',
+            '-a',
+            '-p',
+            String(pid),
           ]);
           let lsofOut = '';
 
-          lsof.stdout.on('data', (data) => { lsofOut += data.toString(); });
-          lsof.on('error', () => { pending--; if (pending === 0) resolve(results); });
+          lsof.stdout.on('data', data => {
+            lsofOut += data.toString();
+          });
+          lsof.on('error', () => {
+            pending--;
+            if (pending === 0) resolve(results);
+          });
           lsof.on('close', () => {
             for (const line of lsofOut.split('\n')) {
               if (line.startsWith('COMMAND')) continue; // skip header
@@ -390,7 +409,7 @@ export class InstanceManager {
    * Runs tasklist + netstat in parallel (~200-300ms) instead of PowerShell (~1-2s).
    */
   private scanProcessesWindows(): Promise<DiscoveredProcess[]> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let tasklistOut = '';
       let netstatOut = '';
       let completed = 0;
@@ -445,13 +464,23 @@ export class InstanceManager {
 
       // Run both commands in parallel for speed
       const tasklist = child_process.spawn('cmd', ['/c', 'tasklist /FO CSV /NH']);
-      tasklist.stdout.on('data', (d) => { tasklistOut += d.toString(); });
-      tasklist.on('error', () => { errored++; checkComplete(); });
+      tasklist.stdout.on('data', d => {
+        tasklistOut += d.toString();
+      });
+      tasklist.on('error', () => {
+        errored++;
+        checkComplete();
+      });
       tasklist.on('close', () => checkComplete());
 
       const netstat = child_process.spawn('cmd', ['/c', 'netstat -ano -p TCP']);
-      netstat.stdout.on('data', (d) => { netstatOut += d.toString(); });
-      netstat.on('error', () => { errored++; checkComplete(); });
+      netstat.stdout.on('data', d => {
+        netstatOut += d.toString();
+      });
+      netstat.on('error', () => {
+        errored++;
+        checkComplete();
+      });
       netstat.on('close', () => checkComplete());
     });
   }
@@ -474,24 +503,24 @@ export class InstanceManager {
    * @returns Promise<boolean> - true if port is available, false if in use
    */
   public checkPortAvailable(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const socket = new net.Socket();
-      
+
       socket.setTimeout(1000);
-      
+
       socket.on('connect', () => {
         // Port is in use - someone is listening
         socket.destroy();
         resolve(false);
       });
-      
+
       socket.on('timeout', () => {
         // Timeout means port is likely available (nothing responding)
         socket.destroy();
         resolve(true);
       });
-      
-      socket.on('error', (err) => {
+
+      socket.on('error', err => {
         // Connection refused means port is available
         // EADDRINUSE would mean port is in use (but connect event should catch this)
         if ((err as any).code === 'ECONNREFUSED') {
@@ -503,7 +532,7 @@ export class InstanceManager {
           resolve(true);
         }
       });
-      
+
       socket.connect(port, 'localhost');
     });
   }
@@ -515,15 +544,20 @@ export class InstanceManager {
    * @returns Promise<number> - First available port found
    * @throws Error if no ports are available in the range
    */
-  public async findAvailablePort(startPort: number = 4096, endPort: number = 5096): Promise<number> {
+  public async findAvailablePort(
+    startPort: number = 4096,
+    endPort: number = 5096
+  ): Promise<number> {
     for (let port = startPort; port <= endPort; port++) {
       const isAvailable = await this.checkPortAvailable(port);
       if (isAvailable) {
         return port;
       }
     }
-    
-    throw new Error(`No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`);
+
+    throw new Error(
+      `No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`
+    );
   }
 
   /**
@@ -541,28 +575,26 @@ export class InstanceManager {
     const fullCommand = `${binaryPath} --port ${port}`;
 
     // Check for existing terminal with the same name
-    const existingTerminal = vscode.window.terminals.find(
-      (t) => t.name === terminalName
-    );
+    const existingTerminal = vscode.window.terminals.find(t => t.name === terminalName);
 
     if (existingTerminal) {
       // Send Ctrl+C to stop any previous process
       // On Windows, multiple Ctrl+C or a small delay might be needed
       existingTerminal.sendText('\x03');
-      
+
       // Small delay to ensure shell processes the interrupt
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Send the new command
       existingTerminal.sendText(fullCommand);
     } else {
       // Create a new terminal, make it visible and focused
       const terminal = vscode.window.createTerminal({ name: terminalName });
       terminal.show(false);
-      
+
       // Wait for shell to initialize before sending the command
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       terminal.sendText(fullCommand);
     }
   }
@@ -611,7 +643,7 @@ export function checkInstanceSync(port: number, timeoutMs: number = 2000): Insta
     completeCheck(false, 'Connection timed out');
   });
 
-  socket.on('error', (err) => {
+  socket.on('error', err => {
     if ((err as any).code === 'EADDRINUSE') {
       completeCheck(true);
     } else if ((err as any).code === 'ECONNREFUSED') {

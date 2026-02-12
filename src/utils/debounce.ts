@@ -5,7 +5,7 @@
 /**
  * Creates a debounced function that delays invoking func until after wait milliseconds
  * have elapsed since the last time the debounced function was invoked.
- * 
+ *
  * @param func - The function to debounce
  * @param wait - The number of milliseconds to delay
  * @returns A new debounced function
@@ -33,7 +33,7 @@ export function debounce<T extends (...args: unknown[]) => void>(
 /**
  * Creates a debounced function with leading edge execution.
  * The function is invoked on the leading edge, not the trailing edge.
- * 
+ *
  * @param func - The function to debounce
  * @param wait - The number of milliseconds to delay
  * @returns A new debounced function with leading edge
@@ -83,7 +83,7 @@ export interface DebounceOptions {
 
 /**
  * Advanced debounce function with options
- * 
+ *
  * @param func - The function to debounce
  * @param wait - The number of milliseconds to delay
  * @param options - Debounce options
@@ -136,7 +136,7 @@ export function debounceWithOptions<T extends (...args: unknown[]) => void>(
 
 /**
  * Check if a debounced function is currently waiting (has a pending execution)
- * 
+ *
  * @param debouncedFunc - The debounced function to check
  * @returns True if waiting, false otherwise
  */
@@ -151,7 +151,7 @@ export function isDebounceWaiting<T extends (...args: unknown[]) => void>(
 
 /**
  * Immediately cancel a debounced function's pending execution
- * 
+ *
  * @param debouncedFunc - The debounced function to cancel
  */
 export function cancelDebounce<T extends (...args: unknown[]) => void>(
@@ -160,7 +160,7 @@ export function cancelDebounce<T extends (...args: unknown[]) => void>(
   // We use a Symbol to store the timeout ID on the function
   const timeoutSymbol = Symbol('debounceTimeout');
   const funcAny = debouncedFunc as any;
-  
+
   if (funcAny[timeoutSymbol] !== undefined) {
     clearTimeout(funcAny[timeoutSymbol]);
     funcAny[timeoutSymbol] = undefined;
@@ -169,7 +169,7 @@ export function cancelDebounce<T extends (...args: unknown[]) => void>(
 
 /**
  * Flush a debounced function, executing it immediately if pending
- * 
+ *
  * @param debouncedFunc - The debounced function to flush
  * @returns True if a pending execution was flushed, false otherwise
  */
@@ -178,7 +178,7 @@ export function flushDebounce<T extends (...args: unknown[]) => void>(
 ): boolean {
   const timeoutSymbol = Symbol('debounceTimeout');
   const funcAny = debouncedFunc as any;
-  
+
   if (funcAny[timeoutSymbol] !== undefined) {
     clearTimeout(funcAny[timeoutSymbol]);
     // Note: We can't easily execute the pending function here without modifying

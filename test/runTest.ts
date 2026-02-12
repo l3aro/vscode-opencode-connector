@@ -2,9 +2,9 @@
  * VSCode Integration Test Runner
  * Uses @vscode/test-electron to run integration tests
  */
+import * as vscodeTest from '@vscode/test-electron';
 
 import * as path from 'path';
-import * as vscodeTest from '@vscode/test-electron';
 
 async function runTests(): Promise<void> {
   try {

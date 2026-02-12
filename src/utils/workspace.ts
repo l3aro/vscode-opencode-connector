@@ -2,9 +2,8 @@
  * Workspace utilities for OpenCode VSCode extension
  * Handles workspace root detection and multi-root workspace support
  */
-
-import * as vscode from 'vscode';
 import * as crypto from 'crypto';
+import * as vscode from 'vscode';
 
 /**
  * Workspace root information
@@ -68,7 +67,7 @@ export const WorkspaceUtils = {
       isWorkspaceOpen: true,
       roots,
       primaryRoot: roots[0] || null,
-      rootUris: workspaceFolders.map((f) => f.uri.toString()),
+      rootUris: workspaceFolders.map(f => f.uri.toString()),
       rootCount: workspaceFolders.length,
     };
   },
@@ -100,7 +99,7 @@ export const WorkspaceUtils = {
    */
   getAllWorkspaceUris(): vscode.Uri[] {
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    return workspaceFolders?.map((f) => f.uri) || [];
+    return workspaceFolders?.map(f => f.uri) || [];
   },
 
   /**
@@ -109,7 +108,7 @@ export const WorkspaceUtils = {
    */
   getAllWorkspaceRoots(): string[] {
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    return workspaceFolders?.map((f) => f.uri.toString()) || [];
+    return workspaceFolders?.map(f => f.uri.toString()) || [];
   },
 
   /**
@@ -237,9 +236,7 @@ export const WorkspaceUtils = {
    * @returns Array of AGENTS.md URIs
    */
   getAllAgentsMdUris(): vscode.Uri[] {
-    return this.getAllWorkspaceUris().map((uri) =>
-      vscode.Uri.joinPath(uri, 'AGENTS.md')
-    );
+    return this.getAllWorkspaceUris().map(uri => vscode.Uri.joinPath(uri, 'AGENTS.md'));
   },
 
   /**

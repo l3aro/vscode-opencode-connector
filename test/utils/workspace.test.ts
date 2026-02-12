@@ -1,8 +1,9 @@
 /**
  * Unit tests for workspace utilities
  */
+import { WorkspaceUtils } from '../../src/utils/workspace';
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock vscode module before importing WorkspaceUtils
 vi.mock('vscode', () => ({
@@ -21,8 +22,6 @@ vi.mock('vscode', () => ({
     })),
   },
 }));
-
-import { WorkspaceUtils } from '../../src/utils/workspace';
 
 describe('getWorkspaceHash', () => {
   it('should generate consistent hash for same path', () => {

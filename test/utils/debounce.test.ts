@@ -1,13 +1,9 @@
 /**
  * Unit tests for debounce utility with fake timers
  */
+import { debounce, debounceLeading, debounceWithOptions } from '../../src/utils/debounce';
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  debounce,
-  debounceLeading,
-  debounceWithOptions,
-} from '../../src/utils/debounce';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('debounce', () => {
   beforeEach(() => {
@@ -129,10 +125,10 @@ describe('debounceLeading', () => {
     const debouncedFunc = debounceLeading(func, 300);
 
     debouncedFunc(); // Leading executes immediately
-    
+
     vi.advanceTimersByTime(100);
     debouncedFunc(); // Stored for trailing
-    
+
     vi.advanceTimersByTime(200);
     expect(func).toHaveBeenCalledTimes(1); // Still only leading
 
@@ -213,7 +209,7 @@ describe('debounce behavior edge cases', () => {
 
     debouncedFunc();
     expect(func).not.toHaveBeenCalled();
-    
+
     vi.advanceTimersByTime(0);
     expect(func).toHaveBeenCalledTimes(1);
   });
@@ -235,7 +231,7 @@ describe('debounce behavior edge cases', () => {
   it('should handle multiple rapid calls with different wait times', () => {
     const func1 = vi.fn();
     const func2 = vi.fn();
-    
+
     const debounced1 = debounce(func1, 100);
     const debounced2 = debounce(func2, 200);
 

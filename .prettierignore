@@ -1,0 +1,8 @@
+out/
+node_modules/
+coverage/
+*.md
+*.yml
+*.yaml
+.esbuild.js
+vitest.config.ts

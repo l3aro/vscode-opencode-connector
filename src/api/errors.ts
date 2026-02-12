@@ -1,8 +1,8 @@
 /**
  * Custom error types for OpenCode API client
  */
-
 import axios from 'axios';
+
 export abstract class OpenCodeError extends Error {
   public code: string;
   constructor(
@@ -25,11 +25,7 @@ export abstract class OpenCodeError extends Error {
  */
 export class OpenCodeUnavailableError extends OpenCodeError {
   constructor(port: number, originalError?: Error) {
-    super(
-      `OpenCode is not available on port ${port}`,
-      'OPENCODE_UNAVAILABLE',
-      originalError
-    );
+    super(`OpenCode is not available on port ${port}`, 'OPENCODE_UNAVAILABLE', originalError);
     this.name = 'OpenCodeUnavailableError';
   }
 }
@@ -57,10 +53,7 @@ export class OpenCodeApiError extends OpenCodeError {
     public readonly endpoint: string,
     public readonly responseBody?: string
   ) {
-    super(
-      `OpenCode API error on ${endpoint}: HTTP ${statusCode}`,
-      'OPENCODE_API_ERROR'
-    );
+    super(`OpenCode API error on ${endpoint}: HTTP ${statusCode}`, 'OPENCODE_API_ERROR');
     this.name = 'OpenCodeApiError';
   }
 }
@@ -69,11 +62,7 @@ export class OpenCodeApiError extends OpenCodeError {
  * Error thrown when the API returns a 4xx client error.
  */
 export class OpenCodeClientError extends OpenCodeApiError {
-  constructor(
-    statusCode: number,
-    endpoint: string,
-    responseBody?: string
-  ) {
+  constructor(statusCode: number, endpoint: string, responseBody?: string) {
     super(statusCode, endpoint, responseBody);
     this.code = 'OPENCODE_CLIENT_ERROR';
     this.name = 'OpenCodeClientError';
@@ -118,11 +107,7 @@ export class MaxRetriesExceededError extends OpenCodeError {
     public readonly attempts: number,
     public readonly lastError: Error
   ) {
-    super(
-      `Maximum retry attempts (${attempts}) exceeded`,
-      'MAX_RETRIES_EXCEEDED',
-      lastError
-    );
+    super(`Maximum retry attempts (${attempts}) exceeded`, 'MAX_RETRIES_EXCEEDED', lastError);
     this.name = 'MaxRetriesExceededError';
   }
 }
@@ -149,10 +134,12 @@ export function isRetryableError(error: unknown): boolean {
   }
   if (error instanceof axios.AxiosError) {
     // Retry on network errors and 5xx status codes
-    if (error.code === 'ECONNREFUSED' ||
-        error.code === 'ECONNRESET' ||
-        error.code === 'ETIMEDOUT' ||
-        error.code === 'ENOTFOUND') {
+    if (
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'ECONNRESET' ||
+      error.code === 'ETIMEDOUT' ||
+      error.code === 'ENOTFOUND'
+    ) {
       return true;
     }
     if (error.response?.status && error.response.status >= 500) {

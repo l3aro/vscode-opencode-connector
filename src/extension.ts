@@ -2,14 +2,14 @@
  * OpenCode Connector VSCode Extension
  * Provides integration between VS Code and OpenCode AI assistant
  */
-
-import * as vscode from 'vscode';
-import { ConfigManager } from './config';
 import { OpenCodeClient } from './api/openCodeClient';
-import { InstanceManager } from './instance/instanceManager';
+import { ConfigManager } from './config';
 import { ContextManager } from './context/contextManager';
+import { InstanceManager } from './instance/instanceManager';
 import { AgentsSyncManager } from './sync/agentsSync';
 import { WorkspaceUtils } from './utils/workspace';
+
+import * as vscode from 'vscode';
 
 /**
  * Global extension state
@@ -119,29 +119,29 @@ async function ensureConnected(): Promise<boolean> {
     try {
       // Find an available port
       const port = await instanceManager.findAvailablePort();
-      
+
       // Spawn in terminal
       await instanceManager.spawnInTerminal(port);
-      
+
       // Wait for server to be ready
       const serverReady = await waitForServer(port);
-      
+
       if (serverReady) {
         // Additional settling delay — the HTTP server responds before the TUI
         // is fully initialized. Without this, the first appendPrompt is dropped.
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
+
         // Update the client to use the new port
         if (openCodeClient) {
           openCodeClient.destroy();
         }
         openCodeClient = new OpenCodeClient({ port });
         connectedPort = port;
-        
+
         if (agentsSyncManager) {
           agentsSyncManager.updateClient(openCodeClient);
         }
-        
+
         console.log(`OpenCode Connector: spawned and connected to instance on port ${port}`);
         return true;
       } else {
@@ -178,16 +178,20 @@ async function ensureConnected(): Promise<boolean> {
  * @param delay - Delay between retries in ms (default: 1000)
  * @returns true if server is ready, false if timeout
  */
-async function waitForServer(port: number, retries: number = 30, delay: number = 1000): Promise<boolean> {
+async function waitForServer(
+  port: number,
+  retries: number = 30,
+  delay: number = 1000
+): Promise<boolean> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       // Create a temporary client to test the server
       const tempClient = new OpenCodeClient({ port, timeout: 1000, maxRetries: 0 });
-      
+
       // Use getPath() as a health check (it tests the /path endpoint)
       await tempClient.getPath();
       tempClient.destroy();
-      
+
       // Server is ready
       return true;
     } catch {
@@ -197,7 +201,7 @@ async function waitForServer(port: number, retries: number = 30, delay: number =
       }
     }
   }
-  
+
   // Timeout - server never became ready
   return false;
 }
@@ -239,7 +243,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     });
 
     // Wire context manager - state tracked internally, sent to OpenCode via explicit commands
-    contextManager.initialize((_state) => {
+    contextManager.initialize(_state => {
       // State tracked internally - sent to OpenCode via explicit commands
     });
 
@@ -269,26 +273,19 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
  */
 function registerCommands(): void {
   // Force sync AGENTS.md command
-  const syncCommand = vscode.commands.registerCommand(
-    'opencodeConnector.syncAgents',
-    async () => {
-      if (!agentsSyncManager) {
-        await vscode.window.showErrorMessage('Sync manager not initialized');
-        return;
-      }
-
-      const result = await agentsSyncManager.performSync();
-      if (result.success) {
-        await vscode.window.showInformationMessage(
-          `Synced ${result.filesSynced} AGENTS.md file(s)`
-        );
-      } else {
-        await vscode.window.showErrorMessage(
-          `Sync failed: ${result.error || 'Unknown error'}`
-        );
-      }
+  const syncCommand = vscode.commands.registerCommand('opencodeConnector.syncAgents', async () => {
+    if (!agentsSyncManager) {
+      await vscode.window.showErrorMessage('Sync manager not initialized');
+      return;
     }
-  );
+
+    const result = await agentsSyncManager.performSync();
+    if (result.success) {
+      await vscode.window.showInformationMessage(`Synced ${result.filesSynced} AGENTS.md file(s)`);
+    } else {
+      await vscode.window.showErrorMessage(`Sync failed: ${result.error || 'Unknown error'}`);
+    }
+  });
 
   // Check instance status command
   const statusCommand = vscode.commands.registerCommand(
@@ -303,9 +300,7 @@ function registerCommands(): void {
       const result = await instanceManager.getRunningInstance(port);
 
       if (result.isRunning) {
-        await vscode.window.showInformationMessage(
-          `OpenCode instance running on port ${port}`
-        );
+        await vscode.window.showInformationMessage(`OpenCode instance running on port ${port}`);
       } else {
         const choice = await vscode.window.showWarningMessage(
           `No OpenCode instance detected on port ${port}`,
@@ -317,9 +312,7 @@ function registerCommands(): void {
           if (spawnResult.success) {
             await vscode.window.showInformationMessage('OpenCode instance started');
           } else {
-            await vscode.window.showErrorMessage(
-              `Failed to start instance: ${spawnResult.error}`
-            );
+            await vscode.window.showErrorMessage(`Failed to start instance: ${spawnResult.error}`);
           }
         }
       }
@@ -334,9 +327,8 @@ function registerCommands(): void {
       const name = WorkspaceUtils.getWorkspaceName();
       const roots = workspaceInfo.rootCount;
 
-      const message = `Workspace: ${name}\n` +
-        `Roots: ${roots}\n` +
-        `Multi-root: ${roots > 1 ? 'Yes' : 'No'}`;
+      const message =
+        `Workspace: ${name}\n` + `Roots: ${roots}\n` + `Multi-root: ${roots > 1 ? 'Yes' : 'No'}`;
 
       await vscode.window.showInformationMessage(message);
     }
@@ -357,9 +349,7 @@ function registerCommands(): void {
           `Synced ${result.filesSynced} AGENTS.md file(s)`
         );
       } else {
-        await vscode.window.showErrorMessage(
-          `Sync failed: ${result.error || 'Unknown error'}`
-        );
+        await vscode.window.showErrorMessage(`Sync failed: ${result.error || 'Unknown error'}`);
       }
     }
   );
@@ -376,9 +366,7 @@ function registerCommands(): void {
       const result = await instanceManager.getRunningInstance(port);
 
       if (result.isRunning) {
-        await vscode.window.showInformationMessage(
-          `OpenCode instance running on port ${port}`
-        );
+        await vscode.window.showInformationMessage(`OpenCode instance running on port ${port}`);
       } else {
         const choice = await vscode.window.showWarningMessage(
           `No OpenCode instance detected on port ${port}`,
@@ -390,9 +378,7 @@ function registerCommands(): void {
           if (spawnResult.success) {
             await vscode.window.showInformationMessage('OpenCode instance started');
           } else {
-            await vscode.window.showErrorMessage(
-              `Failed to start instance: ${spawnResult.error}`
-            );
+            await vscode.window.showErrorMessage(`Failed to start instance: ${spawnResult.error}`);
           }
         }
       }
@@ -406,9 +392,8 @@ function registerCommands(): void {
       const name = WorkspaceUtils.getWorkspaceName();
       const roots = workspaceInfo.rootCount;
 
-      const message = `Workspace: ${name}\n` +
-        `Roots: ${roots}\n` +
-        `Multi-root: ${roots > 1 ? 'Yes' : 'No'}`;
+      const message =
+        `Workspace: ${name}\n` + `Roots: ${roots}\n` + `Multi-root: ${roots > 1 ? 'Yes' : 'No'}`;
 
       await vscode.window.showInformationMessage(message);
     }
@@ -437,9 +422,7 @@ function registerCommands(): void {
         await openCodeClient.appendPrompt(ref);
         await vscode.window.showInformationMessage(`Sent to OpenCode: ${ref}`);
       } catch (err) {
-        await vscode.window.showErrorMessage(
-          `Failed to send reference: ${(err as Error).message}`
-        );
+        await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
       }
     }
   );
@@ -466,9 +449,7 @@ function registerCommands(): void {
         await openCodeClient.appendPrompt(ref);
         await vscode.window.showInformationMessage(`Sent to OpenCode: ${ref}`);
       } catch (err) {
-        await vscode.window.showErrorMessage(
-          `Failed to send reference: ${(err as Error).message}`
-        );
+        await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
       }
     }
   );
@@ -525,41 +506,37 @@ function getActiveFileRef(): string | undefined {
  */
 function registerWorkspaceHandlers(): void {
   // Handle workspace folder changes
-  const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(
-    () => {
-      const workspaceInfo = WorkspaceUtils.detectWorkspace();
-      console.log(
-        `Workspace changed: ${workspaceInfo.rootCount} root(s), primary: ${workspaceInfo.primaryRoot?.name || 'none'}`
-      );
+  const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(() => {
+    const workspaceInfo = WorkspaceUtils.detectWorkspace();
+    console.log(
+      `Workspace changed: ${workspaceInfo.rootCount} root(s), primary: ${workspaceInfo.primaryRoot?.name || 'none'}`
+    );
 
-      // Trigger sync on workspace change
-      if (agentsSyncManager) {
-        agentsSyncManager.performSync().catch((err) => {
-          console.log(`Workspace change sync failed: ${err.message}`);
-        });
-      }
+    // Trigger sync on workspace change
+    if (agentsSyncManager) {
+      agentsSyncManager.performSync().catch(err => {
+        console.log(`Workspace change sync failed: ${err.message}`);
+      });
     }
-  );
+  });
 
   // Handle configuration changes
-  const configChange = vscode.workspace.onDidChangeConfiguration(
-    (event) => {
-      if (event.affectsConfiguration('opencode')) {
-        console.log('OpenCode configuration changed');
+  const configChange = vscode.workspace.onDidChangeConfiguration(event => {
+    if (event.affectsConfiguration('opencode')) {
+      console.log('OpenCode configuration changed');
 
-        // Update client if port changed
-        if (configManager && openCodeClient) {
-          const newPort = configManager.getPort();
-          if (newPort !== openCodeClient.getPort()) {
-            openCodeClient = new OpenCodeClient({ port: newPort });
-            if (agentsSyncManager) {
-              agentsSyncManager.updateClient(openCodeClient);
-            }
+      // Update client if port changed
+      if (configManager && openCodeClient) {
+        const newPort = configManager.getPort();
+        if (newPort !== openCodeClient.getPort()) {
+          openCodeClient = new OpenCodeClient({ port: newPort });
+          if (agentsSyncManager) {
+            agentsSyncManager.updateClient(openCodeClient);
           }
         }
       }
     }
-  );
+  });
 
   extensionContext?.subscriptions.push(workspaceFoldersChange, configChange);
 }

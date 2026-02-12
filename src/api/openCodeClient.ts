@@ -2,29 +2,29 @@
  * HTTP Client for OpenCode API communication
  * Handles connection, retries, and error handling
  */
-
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
 import {
-  HealthResponse,
-  PathResponse,
-  VcsInfo,
-  SessionInfo,
-  MessageInput,
   AgentInfo,
   CommandInfo,
+  HealthResponse,
+  MessageInput,
+  PathResponse,
+  SessionInfo,
   TuiPublishEvent,
+  VcsInfo,
 } from '../types';
 import {
-  OpenCodeError,
-  OpenCodeUnavailableError,
-  OpenCodeConnectionTimeoutError,
-  OpenCodeClientError,
-  OpenCodeServerError,
   OpenCodeApiError,
+  OpenCodeClientError,
+  OpenCodeConnectionTimeoutError,
+  OpenCodeError,
   OpenCodeInvalidResponseError,
+  OpenCodeServerError,
+  OpenCodeUnavailableError,
   isRetryableError,
 } from './errors';
+
+import axios, { AxiosError, AxiosInstance } from 'axios';
+import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
 
 /**
  * Configuration options for OpenCodeClient
@@ -85,7 +85,7 @@ export class OpenCodeClient {
       timeout: this.config.timeout,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
@@ -119,7 +119,7 @@ export class OpenCodeClient {
   private setupRetryInterceptor(): void {
     const retryConfig: IAxiosRetryConfig = {
       retries: this.config.maxRetries,
-      retryDelay: (retryCount) => {
+      retryDelay: retryCount => {
         // Exponential backoff with jitter
         const delay = Math.min(
           this.config.retryDelay * Math.pow(2, retryCount - 1),
@@ -129,7 +129,7 @@ export class OpenCodeClient {
         const jitter = delay * 0.2 * (Math.random() * 2 - 1);
         return Math.max(0, delay + jitter);
       },
-      retryCondition: (error) => {
+      retryCondition: error => {
         return isRetryableError(error);
       },
       shouldResetTimeout: true,
@@ -139,7 +139,7 @@ export class OpenCodeClient {
 
     // Add error transformation interceptor
     this.client.interceptors.response.use(
-      (response) => response,
+      response => response,
       (error: AxiosError) => {
         throw this.transformError(error);
       }
@@ -273,10 +273,7 @@ export class OpenCodeClient {
     const data = response.data;
 
     if (!Array.isArray(data)) {
-      throw new OpenCodeInvalidResponseError(
-        '/session',
-        'Expected array response'
-      );
+      throw new OpenCodeInvalidResponseError('/session', 'Expected array response');
     }
 
     return data;
@@ -367,10 +364,7 @@ export class OpenCodeClient {
     const data = response.data;
 
     if (!Array.isArray(data)) {
-      throw new OpenCodeInvalidResponseError(
-        '/agent',
-        'Expected array response'
-      );
+      throw new OpenCodeInvalidResponseError('/agent', 'Expected array response');
     }
 
     return data;
@@ -389,10 +383,7 @@ export class OpenCodeClient {
     const data = response.data;
 
     if (!Array.isArray(data)) {
-      throw new OpenCodeInvalidResponseError(
-        '/command',
-        'Expected array response'
-      );
+      throw new OpenCodeInvalidResponseError('/command', 'Expected array response');
     }
 
     return data;
@@ -468,10 +459,7 @@ export class OpenCodeClient {
     permissionId: string,
     reply: 'once' | 'always' | 'reject'
   ): Promise<boolean> {
-    const response = await this.client.post(
-      `/permission/${permissionId}/reply`,
-      { reply }
-    );
+    const response = await this.client.post(`/permission/${permissionId}/reply`, { reply });
     return response.data === true || !!response.data;
   }
 
@@ -489,7 +477,7 @@ export class OpenCodeClient {
     try {
       await axios.get(`${this.baseUrl}/global/health`, {
         timeout: 2000,
-        headers: { 'Accept': 'application/json' },
+        headers: { Accept: 'application/json' },
       });
       return true;
     } catch {

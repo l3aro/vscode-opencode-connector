@@ -19,9 +19,7 @@ async function build() {
     },
     logLevel: 'info',
     define: {
-      'process.env.NODE_ENV': JSON.stringify(
-        production ? 'production' : 'development'
-      ),
+      'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
     },
   });
 
@@ -33,24 +31,14 @@ async function build() {
     sourcemap: !production,
     minify: production,
     outdir: 'out/test',
-    entryPoints: [
-      'test/runTest.ts',
-      'test/suite/index.ts',
-    ],
-    external: [
-      '@vscode/test-electron',
-      'vscode',
-      'mocha',
-      'glob',
-    ],
+    entryPoints: ['test/runTest.ts', 'test/suite/index.ts'],
+    external: ['@vscode/test-electron', 'vscode', 'mocha', 'glob'],
     loader: {
       '.node': 'copy',
     },
     logLevel: 'info',
     define: {
-      'process.env.NODE_ENV': JSON.stringify(
-        production ? 'production' : 'development'
-      ),
+      'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
     },
   });
 
@@ -67,7 +55,7 @@ async function build() {
   }
 }
 
-build().catch((error) => {
+build().catch(error => {
   console.error('Build failed:', error);
   process.exit(1);
 });

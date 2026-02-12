@@ -2,8 +2,7 @@
  * Standalone tests for port scanning functionality
  * Tests the core algorithm without VSCode dependencies
  */
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Create a mock module that exports just the functions we need to test
 const createPortScanner = () => {
@@ -11,11 +10,11 @@ const createPortScanner = () => {
    * Check if a port is available
    */
   const checkPortAvailable = (port: number): Promise<boolean> => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       // Simulate port availability check
       // In real implementation, this would use net.Socket
       const isAvailable = port < 4100; // Ports < 4100 are "available" in this mock
-      
+
       setTimeout(() => {
         resolve(isAvailable);
       }, 10);
@@ -35,7 +34,7 @@ const createPortScanner = () => {
         return port;
       }
     }
-    
+
     throw new Error(
       `No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`
     );
@@ -83,7 +82,7 @@ describe('Port Scanner', () => {
               return port;
             }
           }
-          
+
           throw new Error(
             `No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`
           );
@@ -114,7 +113,7 @@ describe('Port Scanner', () => {
               return port;
             }
           }
-          
+
           throw new Error(
             `No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`
           );
@@ -124,7 +123,7 @@ describe('Port Scanner', () => {
       };
 
       const { findAvailablePort } = busyScanner();
-      
+
       await expect(findAvailablePort(4096, 4100)).rejects.toThrow(
         'No available ports in range 4096-4100. Please close unused sessions and retry.'
       );
@@ -132,7 +131,7 @@ describe('Port Scanner', () => {
 
     it('should use default port range 4096-5096', async () => {
       const { findAvailablePort } = createPortScanner();
-      
+
       // Should not throw and should find port in default range
       const result = await findAvailablePort();
       expect(result).toBeGreaterThanOrEqual(4096);
@@ -157,7 +156,7 @@ describe('Port Scanner', () => {
               return port;
             }
           }
-          
+
           throw new Error(
             `No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`
           );
@@ -168,7 +167,7 @@ describe('Port Scanner', () => {
 
       const { findAvailablePort, getCheckCount } = fastScanner();
       const result = await findAvailablePort(4096, 4097);
-      
+
       expect(result).toBe(4096);
       expect(getCheckCount()).toBe(1); // Should only check once
     });
@@ -191,7 +190,7 @@ describe('Port Scanner', () => {
               return port;
             }
           }
-          
+
           throw new Error(
             `No available ports in range ${startPort}-${endPort}. Please close unused sessions and retry.`
           );
@@ -202,7 +201,7 @@ describe('Port Scanner', () => {
 
       const { findAvailablePort, getCheckCount } = thoroughScanner();
       const result = await findAvailablePort(4096, 4100);
-      
+
       expect(result).toBe(4100);
       expect(getCheckCount()).toBe(5); // Should check all 5 ports (4096-4100)
     });
