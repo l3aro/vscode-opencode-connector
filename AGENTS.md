@@ -1,12 +1,12 @@
 # PROJECT KNOWLEDGE BASE
 
 **Generated:** 2026-02-12
-**Commit:** b53eb48
+**Commit:** 054dcf4
 **Branch:** main
 
 ## OVERVIEW
 
-VSCode extension that bridges VS Code with the OpenCode AI assistant. Discovers/spawns local OpenCode server instances, syncs session memory to `AGENTS.md`, and sends file references to the AI prompt. TypeScript + VSCode Extension API, built with esbuild.
+VSCode extension that bridges VS Code with the OpenCode AI assistant. Discovers/spawns local OpenCode server instances and sends file references to the AI prompt. TypeScript + VSCode Extension API, built with esbuild.
 
 ## STRUCTURE
 
@@ -23,8 +23,6 @@ opencode-connector/
 │   │   └── contextManager.ts  # Subscribes to VSCode events, debounces editor state collection
 │   ├── instance/
 │   │   └── instanceManager.ts # Platform-aware process discovery (tasklist/netstat on Win, pgrep/lsof on Unix)
-│   ├── sync/
-│   │   └── agentsSync.ts      # Periodic AGENTS.md writer from OpenCode server memory
 │   └── utils/
 │       ├── workspace.ts       # Multi-root workspace detection, path normalization, hashing
 │       └── debounce.ts        # Debounce utilities (trailing, leading, with options)
@@ -49,10 +47,9 @@ opencode-connector/
 | Add new VSCode command | `src/extension.ts` → `registerCommands()` | Register under both `opencodeConnector.*` and `opencode.*` prefixes |
 | Change connection behavior | `src/extension.ts` → `ensureConnected()` | 4-step cascade: current client → discovery → auto-spawn → fallback port |
 | Fix process detection | `src/instance/instanceManager.ts` | Platform branches: `scanProcessesWindows()` vs `scanProcessesUnix()` |
-| Modify AGENTS.md sync | `src/sync/agentsSync.ts` | Content template in `fetchMemoryFromOpenCode()` |
 | Add new config option | `src/config.ts` + `package.json` contributes.configuration | Singleton, read via `vscode.workspace.getConfiguration('opencode')` |
 | Add new type/interface | `src/types.ts` | All domain types live here |
-| Workspace path logic | `src/utils/workspace.ts` | Handles multi-root, URI↔fsPath, `getAgentsMdPath()` |
+| Workspace path logic | `src/utils/workspace.ts` | Handles multi-root, URI↔fsPath |
 
 ## CODE MAP
 
@@ -66,7 +63,6 @@ opencode-connector/
 | `ConfigManager` | class | config.ts:7 | Singleton — wraps `vscode.workspace.getConfiguration` |
 | `InstanceManager` | class | instance/instanceManager.ts:89 | Singleton — process scan, port check, terminal spawn |
 | `ContextManager` | class | context/contextManager.ts:57 | Event subscriber — debounced editor state aggregation |
-| `AgentsSyncManager` | class | sync/agentsSync.ts:60 | Periodic sync loop + save handler |
 | `WorkspaceUtils` | object | utils/workspace.ts:41 | Static utility — workspace detection, path ops |
 
 ## CONVENTIONS
