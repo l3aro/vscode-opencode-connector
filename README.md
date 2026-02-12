@@ -6,6 +6,8 @@ OpenCode is fantastic as a standalone TUI (Terminal User Interface). It's powerf
 
 **This extension integrates the OpenCode TUI directly into your VS Code workflow.**
 
+![OpenCode Connector extension overview](resources/overview.gif)
+
 ## Why use this extension?
 
 You shouldn't have to choose between a great editor (VS Code) and a great AI agent (OpenCode). This connector gives you the best of both worlds:
@@ -28,11 +30,25 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 ## Usage
 
 1.  Open your project in VS Code.
-2.  Run the command **`Opencode: Check Instance`** (or just start working).
-3.  The extension will find or spawn an OpenCode TUI session.
-4.  Use **`Opencode: Add File to Prompt`** to reference your current code in the TUI.
+2.  The extension will find or spawn an OpenCode TUI session.
+3.  Use **`Opencode: Add File to Prompt`** to reference your current code in the TUI.
+4. Use **`Explain and Fix (OpenCode)`** to quick fix your issue.
+
+## Configuration
+
+You can customize the extension behavior through the following VS Code settings:
+
+- **`opencode.port`**: The port used to connect to the OpenCode server. (Default: `4096`)
+- **`opencode.binaryPath`**: Absolute path to the OpenCode executable. Leave empty to use the one available in your system `PATH`.
+- **`opencode.codeAction.severityLevels`**: An array of diagnostic severity levels (`error`, `warning`, `information`, `hint`) that should trigger the "Explain and Fix" code action. (Default: `["error", "warning", "information", "hint"]`)
 
 ## Requirements
 
-- VS Code 1.74.0 or higher
-- [OpenCode](https://github.com/dpup/opencode) installed and available in your PATH (or configured via `opencode.binaryPath`)
+- VS Code 1.94.0 or higher
+- [OpenCode](https://opencode.ai) installed and available in your PATH (or configured via `opencode.binaryPath`)
+
+## Credits
+
+This extension is inspired by:
+- [OpenCode VSCode SDK](https://github.com/anomalyco/opencode/tree/dev/sdks/vscode)
+- [opencode.nvim](https://github.com/NickvanDyke/opencode.nvim)
