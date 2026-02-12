@@ -22,6 +22,8 @@ let extensionContext: vscode.ExtensionContext | undefined;
 let connectedPort: number | undefined;
 /** Last auto-spawn error for user-facing messages */
 let lastAutoSpawnError: string | undefined;
+/** Status bar item for transient notifications */
+let statusBarItem: vscode.StatusBarItem | undefined;
 
 /**
  * Discover a running OpenCode instance serving the current workspace directory.
@@ -229,6 +231,19 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       // State tracked internally - sent to OpenCode via explicit commands
     });
 
+    // Create status bar item for transient notifications
+    statusBarItem = vscode.window.createStatusBarItem(
+      'opencode-connector',
+      vscode.StatusBarAlignment.Right,
+      100
+    );
+    statusBarItem.name = 'OpenCode Connector';
+    statusBarItem.command = 'opencodeConnector.addToPrompt';
+    statusBarItem.tooltip = 'Click to add active file to OpenCode prompt';
+    statusBarItem.text = '$(go-to-file) OpenCode';
+    statusBarItem.show();
+    extensionContext?.subscriptions.push(statusBarItem);
+
     // Register extension commands
     registerCommands();
 
@@ -245,6 +260,10 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     console.error(`Failed to initialize OpenCode Connector: ${(err as Error).message}`);
     // Extension remains active but may have reduced functionality
   }
+}
+
+function showTransientNotification(message: string): void {
+  vscode.window.setStatusBarMessage(`$(check) ${message}`, 3000);
 }
 
 /**
@@ -365,7 +384,7 @@ function registerCommands(): void {
 
       try {
         await openCodeClient.appendPrompt(ref);
-        await vscode.window.showInformationMessage(`Sent to OpenCode: ${ref}`);
+        showTransientNotification(`Sent: ${ref}`);
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
       }
@@ -392,7 +411,7 @@ function registerCommands(): void {
 
       try {
         await openCodeClient.appendPrompt(ref);
-        await vscode.window.showInformationMessage(`Sent to OpenCode: ${ref}`);
+        showTransientNotification(`Sent: ${ref}`);
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
       }
