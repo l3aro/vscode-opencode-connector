@@ -2,17 +2,12 @@
  * Tests for InstanceManager
  */
 import { ConfigManager } from '../../src/config';
-import {
-  InstanceManager,
-  PlatformUtils,
-  checkInstanceSync,
-} from '../../src/instance/instanceManager';
+import { InstanceManager, PlatformUtils } from '../../src/instance/instanceManager';
 
 import * as net from 'net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock vscode module
-const mockVscode = {
+vi.mock('vscode', () => ({
   workspace: {
     getConfiguration: vi.fn().mockReturnValue({
       get: vi.fn().mockImplementation((key: string) => {
@@ -25,9 +20,7 @@ const mockVscode = {
       update: vi.fn().mockResolvedValue(undefined),
     }),
   },
-};
-
-vi.mock('vscode', () => mockVscode);
+}));
 
 // Mock config manager factory
 const createMockConfigManager = (

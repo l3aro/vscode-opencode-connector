@@ -486,18 +486,6 @@ export class InstanceManager {
   }
 
   /**
-   * Synchronous version of instance check
-   * Delegates to the module-level checkInstanceSync function
-   * @param port - Optional port to check (uses config default if not provided)
-   * @param timeoutMs - Connection timeout in milliseconds (default: 2000)
-   * @returns InstanceCheckResult
-   */
-  public checkInstanceSync(port?: number, timeoutMs: number = 2000): InstanceCheckResult {
-    const targetPort = port ?? this.configManager.getPort();
-    return checkInstanceSync(targetPort, timeoutMs);
-  }
-
-  /**
    * Check if a specific port is available for use
    * @param port - Port number to check
    * @returns Promise<boolean> - true if port is available, false if in use
@@ -606,62 +594,6 @@ export class InstanceManager {
   private getWorkspacePath(): string {
     return WorkspaceUtils.getWorkspacePath();
   }
-}
-
-/**
- * Synchronous version of instance check (useful for quick checks)
- * Note: Due to async nature of socket connections, this still uses callbacks internally
- * but provides a simpler API for quick port checks
- * @param port - Port to check
- * @param timeoutMs - Connection timeout in milliseconds (default: 2000)
- * @returns InstanceCheckResult
- */
-export function checkInstanceSync(port: number, timeoutMs: number = 2000): InstanceCheckResult {
-  let resolved = false;
-  const result: InstanceCheckResult = {
-    isRunning: false,
-    port,
-    error: undefined,
-  };
-
-  const socket = new net.Socket();
-  socket.setTimeout(timeoutMs);
-
-  const completeCheck = (isRunning: boolean, error?: string): void => {
-    if (resolved) return;
-    resolved = true;
-    result.isRunning = isRunning;
-    result.error = error;
-    socket.destroy();
-  };
-
-  socket.on('connect', () => {
-    completeCheck(true);
-  });
-
-  socket.on('timeout', () => {
-    completeCheck(false, 'Connection timed out');
-  });
-
-  socket.on('error', (err: Error & { code?: string }) => {
-    if (err.code === 'EADDRINUSE') {
-      completeCheck(true);
-    } else if (err.code === 'ECONNREFUSED') {
-      completeCheck(false, 'Connection refused');
-    } else if (err.code === 'ENOTFOUND') {
-      completeCheck(false, 'Host not found');
-    } else {
-      completeCheck(false, err.message);
-    }
-  });
-
-  try {
-    socket.connect(port, 'localhost');
-  } catch (err) {
-    completeCheck(false, (err as Error).message);
-  }
-
-  return result;
 }
 
 export default InstanceManager;

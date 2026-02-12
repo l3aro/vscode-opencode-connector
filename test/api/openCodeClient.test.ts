@@ -52,14 +52,18 @@ vi.mock('axios', () => {
     }
   }
 
+  // Shared mock get function for both axios.get and axios.create().get
+  const mockGet = vi.fn();
+
   return {
     default: {
       create: vi.fn(() => ({
-        get: vi.fn(),
+        get: mockGet,
         post: vi.fn(),
         interceptors: { response: { use: vi.fn() } },
         defaults: { timeout: 30000 },
       })),
+      get: mockGet,
       isAxiosError: (err: unknown) => err instanceof AxiosError,
       AxiosError,
     },
@@ -127,8 +131,11 @@ describe('OpenCodeClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Use the shared mock get from the axios mock factory
+    const sharedMockGet = axios.get as ReturnType<typeof vi.fn>;
+
     mockHttp = {
-      get: vi.fn(),
+      get: sharedMockGet,
       post: vi.fn(),
       interceptors: { response: { use: vi.fn() } },
       defaults: { timeout: 30000 },
@@ -365,7 +372,10 @@ describe('OpenCodeClient', () => {
 
       const client = createClient();
       expect(await client.testConnection()).toBe(true);
-      expect(mockHttp.get).toHaveBeenCalledWith('/global/health', { timeout: 5000 });
+      expect(mockHttp.get).toHaveBeenCalledWith('http://127.0.0.1:4096/global/health', {
+        timeout: 2000,
+        headers: { Accept: 'application/json' },
+      });
     });
 
     it('returns false when server is down', async () => {
