@@ -1,0 +1,70 @@
+{
+  "name": "opencode-connector",
+  "displayName": "OpenCode Connector",
+  "description": "VSCode-based extension for connecting to OpenCode",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0",
+    "windsurf": "^1.0.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:opencodeConnector.connect",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "opencodeConnector.connect",
+        "title": "Connect to OpenCode"
+      },
+      {
+        "command": "opencodeConnector.addFileToPrompt",
+        "title": "Add File to OpenCode Prompt"
+      }
+    ],
+    "configuration": {
+      "title": "OpenCode",
+      "properties": {
+        "opencode.port": {
+          "type": "number",
+          "default": 4096,
+          "description": "Port for OpenCode server connection"
+        },
+        "opencode.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to OpenCode binary"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "pretest": "npm run compile",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run",
+    "test:integration": "node ./out/test/runTest.js",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
+    "@types/vscode": "^1.74.0",
+    "@vscode/test-electron": "^2.3.0",
+    "esbuild": "^0.17.0",
+    "glob": "^13.0.2",
+    "mocha": "^11.7.5",
+    "typescript": "^5.0.0",
+    "vitest": "^0.30.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "axios-retry": "^4.0.0"
+  }
+}

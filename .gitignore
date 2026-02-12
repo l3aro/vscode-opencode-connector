@@ -1,0 +1,8 @@
+.vscode/**
+.vscode-test/**
+.sisyphus/**
+node_modules/**
+out/**
+temp/**
+nul
+package-lock.json

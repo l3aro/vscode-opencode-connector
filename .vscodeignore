@@ -1,0 +1,14 @@
+.vscode/**
+.sisyphus/**
+src/**
+test/**
+node_modules/**
+temp/**
+nul
+.gitignore
+tsconfig.json
+vitest.config.ts
+esbuild.js
+package-lock.json
+**/*.ts
+**/*.map
