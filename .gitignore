@@ -3,6 +3,7 @@
 .sisyphus/**
 node_modules/**
 out/**
+dist/**
 temp/**
 nul
 package-lock.json

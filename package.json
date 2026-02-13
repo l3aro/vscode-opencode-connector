@@ -8,7 +8,7 @@
     "url": "https://github.com/l3aro/vscode-opencode-connector.git"
   },
   "icon": "resources/icon.png",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "engines": {
     "vscode": "^1.94.0",
@@ -90,7 +90,8 @@
     "test:integration": "node ./out/test/runTest.js",
     "lint": "eslint src --ext ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "pack": "vsce package -o dist/opencode-connector.vsix"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
@@ -106,7 +107,8 @@
     "prettier": "^3.8.1",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.55.0",
-    "vitest": "^0.30.0"
+    "vitest": "^0.30.0",
+    "vsce": "^2.15.0"
   },
   "dependencies": {
     "axios": "^1.6.0",
