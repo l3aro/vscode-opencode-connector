@@ -12,7 +12,48 @@ import {
 } from './providers/codeActionProvider';
 import { WorkspaceUtils } from './utils/workspace';
 
+import * as path from 'path';
 import * as vscode from 'vscode';
+
+/**
+ * Check if running in a remote session (SSH, WSL, Containers, Dev Pods)
+ * @returns true if running in a remote environment
+ */
+function isRemoteSession(): boolean {
+  return vscode.env.remoteName !== undefined;
+}
+
+/**
+ * Normalize and compare filesystem paths across platforms.
+ * Handles: path separators, trailing slashes, remote path formats.
+ * @param serverPath - Path returned by OpenCode server
+ * @param localPath - Path from VSCode workspace
+ * @returns true if paths refer to the same directory
+ */
+function pathsMatch(serverPath: string, localPath: string): boolean {
+  // Normalize: resolve to absolute, remove trailing separators, lowercase if case-insensitive
+  const normalize = (p: string): string => {
+    // Resolve relative paths to absolute (handles "." and "./")
+    let resolved = path.resolve(p);
+    // Normalize separators to platform default
+    resolved = path.normalize(resolved);
+    // Remove trailing slashes
+    resolved = resolved.replace(/[\\/]+$/, '');
+    return resolved;
+  };
+
+  const normalizedServer = normalize(serverPath);
+  const normalizedLocal = normalize(localPath);
+
+  // On case-insensitive filesystems (Windows, macOS), use case-insensitive comparison
+  // On case-sensitive filesystems (Linux, most remote servers), use case-sensitive comparison
+  const isCaseSensitive = process.platform !== 'win32' && process.platform !== 'darwin';
+
+  if (isCaseSensitive) {
+    return normalizedServer === normalizedLocal;
+  }
+  return normalizedServer.toLowerCase() === normalizedLocal.toLowerCase();
+}
 
 /**
  * Global extension state
@@ -49,7 +90,9 @@ async function discoverAndConnect(): Promise<boolean> {
 
   // Scan for running opencode processes
   const processes = await instanceManager.scanForProcesses();
+  console.log(`[discoverAndConnect] Found ${processes.length} OpenCode process(es):`, processes);
   if (processes.length === 0) {
+    console.log('[discoverAndConnect] No OpenCode processes found, will attempt auto-spawn');
     return false;
   }
 
@@ -59,15 +102,20 @@ async function discoverAndConnect(): Promise<boolean> {
   // For each port, verify it's an OpenCode server serving our directory
   for (const port of uniquePorts) {
     try {
+      console.log(`[discoverAndConnect] Checking port ${port}...`);
       const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
       const pathInfo = await tempClient.getPath();
       tempClient.destroy();
 
-      // Normalize paths for comparison (Windows backslash vs forward slash)
-      const serverDir = pathInfo.directory.replace(/\//g, '\\');
-      const localDir = workspaceDir.replace(/\//g, '\\');
+      console.log(
+        `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}", workspace: "${workspaceDir}"`
+      );
+      console.log(
+        `[discoverAndConnect] Paths match: ${pathsMatch(pathInfo.directory, workspaceDir)}`
+      );
 
-      if (serverDir.toLowerCase() === localDir.toLowerCase()) {
+      // Normalize paths for comparison (platform-aware)
+      if (pathsMatch(pathInfo.directory, workspaceDir)) {
         // Found a match — update the global client
         if (connectedPort !== port) {
           if (openCodeClient) {
@@ -80,8 +128,9 @@ async function discoverAndConnect(): Promise<boolean> {
         }
         return true;
       }
-    } catch {
+    } catch (err) {
       // This port isn't a valid OpenCode server, skip
+      console.log(`[discoverAndConnect] Port ${port} error: ${(err as Error).message}`);
       continue;
     }
   }
@@ -269,7 +318,10 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       // Silently ignore — ensureConnected() will retry on-demand
     });
 
-    console.log('OpenCode Connector fully initialized');
+    console.log(
+      'OpenCode Connector fully initialized' +
+        (isRemoteSession() ? ` [Remote: ${vscode.env.remoteName}]` : ' [Local]')
+    );
   } catch (err) {
     console.error(`Failed to initialize OpenCode Connector: ${(err as Error).message}`);
     // Extension remains active but may have reduced functionality
@@ -397,7 +449,9 @@ function registerCommands(): void {
       }
 
       try {
-        await openCodeClient.appendPrompt(ref);
+        console.log(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
+        const result = await openCodeClient.appendPrompt(ref);
+        console.log(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
@@ -424,7 +478,9 @@ function registerCommands(): void {
       }
 
       try {
-        await openCodeClient.appendPrompt(ref);
+        console.log(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
+        const result = await openCodeClient.appendPrompt(ref);
+        console.log(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);

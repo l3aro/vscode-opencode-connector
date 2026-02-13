@@ -336,8 +336,10 @@ export class InstanceManager {
    */
   private scanProcessesUnix(): Promise<DiscoveredProcess[]> {
     return new Promise(resolve => {
-      // Find PIDs by command line pattern — filter for --port to avoid matching other opencode processes
-      const pgrep = child_process.spawn('pgrep', ['-f', 'opencode.*--port']);
+      // Find PIDs of opencode processes - match both with and without --port flag
+      // Pattern matches: "opencode", "opencode --port 4096", "opencode --port=4096"
+      // Does NOT match: "opencode-extra", "opencodehelper"
+      const pgrep = child_process.spawn('pgrep', ['-f', '^opencode(\\s|$)']);
       let stdout = '';
 
       pgrep.stdout.on('data', data => {
