@@ -28,6 +28,13 @@ jobs:
       - name: Package VSIX
         run: npx vsce package
 
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: *.vsix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to VSCode Marketplace
         run: npx vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
         env:
