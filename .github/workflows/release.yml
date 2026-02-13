@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Package VSIX
+        run: npm run pack
+
+      - name: Publish to VSCode Marketplace
+        run: |
+          npx vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+        env:
+          VSCE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+
+      - name: Publish to Open VSX Registry
+        run: |
+          npx ovsx publish -p ${{ secrets.OPENVSX_TOKEN }}
+        env:
+          OVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
