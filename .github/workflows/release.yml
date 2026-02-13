@@ -26,22 +26,14 @@ jobs:
         run: npm run compile
 
       - name: Package VSIX
-        run: |
-          mkdir -p dist
-          npx vsce package
-
-      - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vsix
-          path: dist/*.vsix
+        run: npx vsce package -o dist/opencode-connector.vsix
 
       - name: Publish to VSCode Marketplace
-        run: npx vsce publish --vsix dist/*.vsix -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+        run: npx vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
         env:
           VSCE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
 
       - name: Publish to Open VSX Registry
-        run: npx ovsx publish dist/*.vsix -p ${{ secrets.OPENVSX_TOKEN }}
+        run: npx ovsx publish -p ${{ secrets.OPENVSX_TOKEN }}
         env:
           OVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
