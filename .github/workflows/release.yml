@@ -26,9 +26,7 @@ jobs:
         run: npm run compile
 
       - name: Package VSIX
-        run: |
-          npx vsce package
-          ls -la *.vsix
+        run: npx vsce package
 
       - name: Publish to VSCode Marketplace
         run: npx vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
