@@ -353,22 +353,37 @@ export class InstanceManager {
    */
   private scanProcessesUnix(): Promise<DiscoveredProcess[]> {
     return new Promise(resolve => {
-      // Find PIDs of opencode processes - match both with and without --port flag
-      // Pattern matches: "opencode", "opencode --port 4096", "opencode --port=4096"
+      // Find PIDs of opencode processes
+      // Match opencode regardless of path (e.g., /usr/bin/opencode, ./opencode)
+      // Also matches: "opencode", "opencode --port 4096", "opencode --port=4096"
       // Does NOT match: "opencode-extra", "opencodehelper"
-      const pgrep = child_process.spawn('pgrep', ['-f', '^opencode(\\s|$)']);
+      const pgrep = child_process.spawn('pgrep', ['-f', 'opencode']);
+
+      this.logger?.info('[scanProcessesUnix] Running pgrep for opencode processes');
+
       let stdout = '';
 
       pgrep.stdout.on('data', data => {
         stdout += data.toString();
       });
-      pgrep.on('error', () => resolve([]));
-      pgrep.on('close', () => {
+      pgrep.on('error', err => {
+        this.logger?.warn(`[scanProcessesUnix] pgrep error: ${err.message}`);
+        resolve([]);
+      });
+      pgrep.on('close', code => {
+        if (code !== 0 && code !== 1) {
+          // code 1 means no processes found (which is fine)
+          this.logger?.warn(`[scanProcessesUnix] pgrep exited with code ${code}`);
+        }
+
         const pids = stdout
           .trim()
           .split('\n')
           .map(s => parseInt(s.trim(), 10))
           .filter(n => !isNaN(n));
+
+        this.logger?.info(`[scanProcessesUnix] Found PIDs: ${pids.join(', ') || 'none'}`);
+
         if (pids.length === 0) {
           resolve([]);
           return;
@@ -416,7 +431,12 @@ export class InstanceManager {
               }
             }
             pending--;
-            if (pending === 0) resolve(results);
+            if (pending === 0) {
+              this.logger?.info(
+                `[scanProcessesUnix] Found processes with ports: ${JSON.stringify(results)}`
+              );
+              resolve(results);
+            }
           });
         }
       });
@@ -429,6 +449,8 @@ export class InstanceManager {
    */
   private scanProcessesWindows(): Promise<DiscoveredProcess[]> {
     return new Promise(resolve => {
+      this.logger?.info('[scanProcessesWindows] Running tasklist and netstat');
+
       let tasklistOut = '';
       let netstatOut = '';
       let completed = 0;
@@ -439,6 +461,7 @@ export class InstanceManager {
         if (completed < 2) return;
 
         if (errored >= 2) {
+          this.logger?.warn('[scanProcessesWindows] Both commands errored');
           resolve([]);
           return;
         }
@@ -457,6 +480,10 @@ export class InstanceManager {
             }
           }
         }
+
+        this.logger?.info(
+          `[scanProcessesWindows] Found PIDs: ${[...opencodePids].join(', ') || 'none'}`
+        );
 
         if (opencodePids.size === 0) {
           resolve([]);
@@ -478,6 +505,10 @@ export class InstanceManager {
             }
           }
         }
+
+        this.logger?.info(
+          `[scanProcessesWindows] Found processes with ports: ${JSON.stringify(results)}`
+        );
         resolve(results);
       };
 

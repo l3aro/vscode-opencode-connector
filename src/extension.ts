@@ -76,9 +76,11 @@ let outputChannel: vscode.LogOutputChannel | undefined;
  * Discover a running OpenCode instance serving the current workspace directory.
  * Scans running processes, verifies each with GET /path, and matches against workspace CWD.
  * If a match is found, creates/updates the global client to use that port.
+ * @param retries - Number of retry attempts (default: 3)
+ * @param delayMs - Delay between retries in ms (default: 2000)
  * @returns true if connected, false if no matching instance found
  */
-async function discoverAndConnect(): Promise<boolean> {
+async function discoverAndConnect(retries: number = 3, delayMs: number = 2000): Promise<boolean> {
   if (!instanceManager) {
     return false;
   }
@@ -90,57 +92,69 @@ async function discoverAndConnect(): Promise<boolean> {
   }
   const workspaceDir = workspaceFolders[0].uri.fsPath;
 
-  // Scan for running opencode processes
-  const processes = await instanceManager.scanForProcesses();
-  outputChannel?.info(
-    `[discoverAndConnect] Found ${processes.length} OpenCode process(es): ${processes.map(p => p.port).join(', ')}`
-  );
-  if (processes.length === 0) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    if (attempt > 1) {
+      outputChannel?.info(
+        `[discoverAndConnect] Retry ${attempt}/${retries} after ${delayMs}ms delay...`
+      );
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+
+    // Scan for running opencode processes
+    const processes = await instanceManager.scanForProcesses();
     outputChannel?.info(
-      '[discoverAndConnect] No OpenCode processes found, will attempt auto-spawn'
+      `[discoverAndConnect] Attempt ${attempt}: Found ${processes.length} OpenCode process(es): ${processes.map(p => p.port).join(', ')}`
     );
-    return false;
-  }
 
-  // Deduplicate ports
-  const uniquePorts = [...new Set(processes.map(p => p.port))];
-
-  // For each port, verify it's an OpenCode server serving our directory
-  for (const port of uniquePorts) {
-    try {
-      outputChannel?.debug(`[discoverAndConnect] Checking port ${port}...`);
-      const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
-      const pathInfo = await tempClient.getPath();
-      tempClient.destroy();
-
-      outputChannel?.debug(
-        `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}", workspace: "${workspaceDir}"`
-      );
-      outputChannel?.debug(
-        `[discoverAndConnect] Paths match: ${pathsMatch(pathInfo.directory, workspaceDir)}`
-      );
-
-      // Normalize paths for comparison (platform-aware)
-      if (pathsMatch(pathInfo.directory, workspaceDir)) {
-        // Found a match — update the global client
-        if (connectedPort !== port) {
-          if (openCodeClient) {
-            openCodeClient.destroy();
-          }
-          openCodeClient = new OpenCodeClient({ port });
-          connectedPort = port;
-
-          outputChannel?.info(`OpenCode Connector: auto-connected to instance on port ${port}`);
-        }
-        return true;
-      }
-    } catch (err) {
-      // This port isn't a valid OpenCode server, skip
-      outputChannel?.warn(`[discoverAndConnect] Port ${port} error: ${(err as Error).message}`);
+    if (processes.length === 0) {
+      // No processes found, try again
       continue;
+    }
+
+    // Deduplicate ports
+    const uniquePorts = [...new Set(processes.map(p => p.port))];
+
+    // For each port, verify it's an OpenCode server serving our directory
+    for (const port of uniquePorts) {
+      try {
+        outputChannel?.info(`[discoverAndConnect] Checking port ${port}...`);
+        const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
+        const pathInfo = await tempClient.getPath();
+        tempClient.destroy();
+
+        outputChannel?.info(
+          `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}" vs workspace: "${workspaceDir}"`
+        );
+
+        const matches = pathsMatch(pathInfo.directory, workspaceDir);
+        outputChannel?.info(`[discoverAndConnect] Paths match: ${matches}`);
+
+        // Normalize paths for comparison (platform-aware)
+        if (matches) {
+          // Found a match — update the global client
+          if (connectedPort !== port) {
+            if (openCodeClient) {
+              openCodeClient.destroy();
+            }
+            openCodeClient = new OpenCodeClient({ port });
+            connectedPort = port;
+
+            outputChannel?.info(`OpenCode Connector: auto-connected to instance on port ${port}`);
+          }
+          return true;
+        }
+      } catch (err) {
+        // This port isn't a valid OpenCode server, skip
+        outputChannel?.warn(`[discoverAndConnect] Port ${port} error: ${(err as Error).message}`);
+        continue;
+      }
     }
   }
 
+  // Exhausted all retries
+  outputChannel?.info(
+    '[discoverAndConnect] No OpenCode processes found after retries, will attempt auto-spawn'
+  );
   return false;
 }
 
