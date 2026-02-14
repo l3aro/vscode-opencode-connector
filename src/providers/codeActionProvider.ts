@@ -39,8 +39,11 @@ export class OpenCodeCodeActionProvider implements vscode.CodeActionProvider {
     const configuredLevels = configManager.getCodeActionSeverityLevels();
 
     // Convert configured strings to DiagnosticSeverity enums
+    // Note: Must use explicit undefined check instead of Boolean filter because 0 (Error) is falsy
     const allowedSeverities = new Set(
-      configuredLevels.map(level => severityMap[level]).filter(Boolean)
+      configuredLevels
+        .map(level => severityMap[level])
+        .filter((v): v is vscode.DiagnosticSeverity => v !== undefined)
     );
 
     // Filter diagnostics to only include those matching allowed severities
