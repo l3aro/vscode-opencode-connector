@@ -471,7 +471,10 @@ function registerCommands(): void {
       }
 
       try {
-        outputChannel?.debug(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
+        const port = openCodeClient.getPort();
+        const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+        outputChannel?.info(`[addToPrompt] Sending to port ${port}, cwd: ${workspaceDir}`);
+        outputChannel?.debug(`[addToPrompt] Content: "${ref}"`);
         const result = await openCodeClient.appendPrompt(ref);
         outputChannel?.debug(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
@@ -500,7 +503,10 @@ function registerCommands(): void {
       }
 
       try {
-        outputChannel?.debug(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
+        const port = openCodeClient.getPort();
+        const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+        outputChannel?.info(`[addToPrompt] Sending to port ${port}, cwd: ${workspaceDir}`);
+        outputChannel?.debug(`[addToPrompt] Content: "${ref}"`);
         const result = await openCodeClient.appendPrompt(ref);
         outputChannel?.debug(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
