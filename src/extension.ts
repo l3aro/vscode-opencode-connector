@@ -69,6 +69,8 @@ let connectedPort: number | undefined;
 let lastAutoSpawnError: string | undefined;
 /** Status bar item for transient notifications */
 let statusBarItem: vscode.StatusBarItem | undefined;
+/** Log output channel for extension logs */
+let outputChannel: vscode.LogOutputChannel | undefined;
 
 /**
  * Discover a running OpenCode instance serving the current workspace directory.
@@ -90,9 +92,13 @@ async function discoverAndConnect(): Promise<boolean> {
 
   // Scan for running opencode processes
   const processes = await instanceManager.scanForProcesses();
-  console.log(`[discoverAndConnect] Found ${processes.length} OpenCode process(es):`, processes);
+  outputChannel?.info(
+    `[discoverAndConnect] Found ${processes.length} OpenCode process(es): ${processes.map(p => p.port).join(', ')}`
+  );
   if (processes.length === 0) {
-    console.log('[discoverAndConnect] No OpenCode processes found, will attempt auto-spawn');
+    outputChannel?.info(
+      '[discoverAndConnect] No OpenCode processes found, will attempt auto-spawn'
+    );
     return false;
   }
 
@@ -102,15 +108,15 @@ async function discoverAndConnect(): Promise<boolean> {
   // For each port, verify it's an OpenCode server serving our directory
   for (const port of uniquePorts) {
     try {
-      console.log(`[discoverAndConnect] Checking port ${port}...`);
+      outputChannel?.debug(`[discoverAndConnect] Checking port ${port}...`);
       const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
       const pathInfo = await tempClient.getPath();
       tempClient.destroy();
 
-      console.log(
+      outputChannel?.debug(
         `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}", workspace: "${workspaceDir}"`
       );
-      console.log(
+      outputChannel?.debug(
         `[discoverAndConnect] Paths match: ${pathsMatch(pathInfo.directory, workspaceDir)}`
       );
 
@@ -124,13 +130,13 @@ async function discoverAndConnect(): Promise<boolean> {
           openCodeClient = new OpenCodeClient({ port });
           connectedPort = port;
 
-          console.log(`OpenCode Connector: auto-connected to instance on port ${port}`);
+          outputChannel?.info(`OpenCode Connector: auto-connected to instance on port ${port}`);
         }
         return true;
       }
     } catch (err) {
       // This port isn't a valid OpenCode server, skip
-      console.log(`[discoverAndConnect] Port ${port} error: ${(err as Error).message}`);
+      outputChannel?.warn(`[discoverAndConnect] Port ${port} error: ${(err as Error).message}`);
       continue;
     }
   }
@@ -187,7 +193,9 @@ async function ensureConnected(): Promise<boolean> {
         openCodeClient = new OpenCodeClient({ port });
         connectedPort = port;
 
-        console.log(`OpenCode Connector: spawned and connected to instance on port ${port}`);
+        outputChannel?.info(
+          `OpenCode Connector: spawned and connected to instance on port ${port}`
+        );
         return true;
       } else {
         lastAutoSpawnError = `Spawned OpenCode on port ${port} but it did not become ready within 30s. Check the "OpenCode" terminal for errors.`;
@@ -257,8 +265,13 @@ async function waitForServer(
  * @param context - The extension context
  */
 export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
-  console.log('OpenCode Connector extension is now active');
   extensionContext = context;
+
+  // Create log output channel for user-accessible logging (View → Output → OpenCode Connector)
+  outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
+  context.subscriptions.push(outputChannel);
+
+  outputChannel.info('OpenCode Connector extension is now active');
 
   try {
     // Initialize configuration manager (singleton)
@@ -270,6 +283,15 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
 
     // Initialize instance manager (singleton)
     instanceManager = InstanceManager.getInstance(configManager);
+
+    // Set up logger for InstanceManager to use the OutputChannel
+    if (outputChannel) {
+      instanceManager.setLogger({
+        info: (msg: string) => outputChannel.info(msg),
+        warn: (msg: string) => outputChannel.warn(msg),
+        error: (msg: string) => outputChannel.error(msg),
+      });
+    }
 
     // Initialize context manager
     contextManager = new ContextManager({
@@ -318,12 +340,12 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       // Silently ignore — ensureConnected() will retry on-demand
     });
 
-    console.log(
+    outputChannel?.info(
       'OpenCode Connector fully initialized' +
         (isRemoteSession() ? ` [Remote: ${vscode.env.remoteName}]` : ' [Local]')
     );
   } catch (err) {
-    console.error(`Failed to initialize OpenCode Connector: ${(err as Error).message}`);
+    outputChannel?.error(`Failed to initialize OpenCode Connector: ${(err as Error).message}`);
     // Extension remains active but may have reduced functionality
   }
 }
@@ -449,9 +471,9 @@ function registerCommands(): void {
       }
 
       try {
-        console.log(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
+        outputChannel?.debug(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
         const result = await openCodeClient.appendPrompt(ref);
-        console.log(`[addToPrompt] Result: ${result}`);
+        outputChannel?.debug(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
@@ -478,9 +500,9 @@ function registerCommands(): void {
       }
 
       try {
-        console.log(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
+        outputChannel?.debug(`[addToPrompt] Sending "${ref}" to port ${openCodeClient.getPort()}`);
         const result = await openCodeClient.appendPrompt(ref);
-        console.log(`[addToPrompt] Result: ${result}`);
+        outputChannel?.debug(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
@@ -598,7 +620,7 @@ function registerWorkspaceHandlers(): void {
   // Handle workspace folder changes
   const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(() => {
     const workspaceInfo = WorkspaceUtils.detectWorkspace();
-    console.log(
+    outputChannel?.info(
       `Workspace changed: ${workspaceInfo.rootCount} root(s), primary: ${workspaceInfo.primaryRoot?.name || 'none'}`
     );
   });
@@ -606,7 +628,7 @@ function registerWorkspaceHandlers(): void {
   // Handle configuration changes
   const configChange = vscode.workspace.onDidChangeConfiguration(event => {
     if (event.affectsConfiguration('opencode')) {
-      console.log('OpenCode configuration changed');
+      outputChannel?.info('OpenCode configuration changed');
 
       // Update client if port changed
       if (configManager && openCodeClient) {
@@ -625,7 +647,7 @@ function registerWorkspaceHandlers(): void {
  * Called when the extension is deactivated.
  */
 export function deactivate(): void {
-  console.log('OpenCode Connector extension is now deactivated');
+  outputChannel?.info('OpenCode Connector extension is now deactivated');
 
   // Cleanup in reverse order
   if (contextManager) {

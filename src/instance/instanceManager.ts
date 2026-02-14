@@ -83,15 +83,32 @@ export interface DiscoveredProcess {
 }
 
 /**
+ * Logger interface for extension logging
+ */
+export interface Logger {
+  info(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
+}
+
+/**
  * Instance Manager for OpenCode
  * Provides methods to detect running instances and spawn new ones
  */
 export class InstanceManager {
   private static instance: InstanceManager;
   private configManager: ConfigManager;
+  private logger?: Logger;
 
   private constructor(configManager: ConfigManager) {
     this.configManager = configManager;
+  }
+
+  /**
+   * Set logger for output
+   */
+  public setLogger(logger: Logger): void {
+    this.logger = logger;
   }
 
   /**
@@ -262,7 +279,7 @@ export class InstanceManager {
         // Handle process exit (for detached processes, exit immediately usually means error)
         spawnedProcess.on('exit', (code, signal) => {
           if (code !== null && code !== 0) {
-            console.warn(`OpenCode process exited with code ${code} (signal: ${signal})`);
+            this.logger?.warn(`OpenCode process exited with code ${code} (signal: ${signal})`);
           }
         });
       } catch (err) {
