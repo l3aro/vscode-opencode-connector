@@ -353,22 +353,37 @@ export class InstanceManager {
    */
   private scanProcessesUnix(): Promise<DiscoveredProcess[]> {
     return new Promise(resolve => {
-      // Find PIDs of opencode processes - match both with and without --port flag
-      // Pattern matches: "opencode", "opencode --port 4096", "opencode --port=4096"
-      // Does NOT match: "opencode-extra", "opencodehelper"
-      const pgrep = child_process.spawn('pgrep', ['-f', '^opencode(\\s|$)']);
+      // Find PIDs of opencode processes
+      // Match opencode at word boundary or after path separator
+      // Matches: "opencode", "opencode --port 4096", "/usr/bin/opencode", "./opencode"
+      // Does NOT match: "opencode-extra", "opencodehelper", "my-opencode-tool"
+      const pgrep = child_process.spawn('pgrep', ['-f', '(^|/)opencode($|\\s)']);
+
+      this.logger?.info('[scanProcessesUnix] Running pgrep for opencode processes');
+
       let stdout = '';
 
       pgrep.stdout.on('data', data => {
         stdout += data.toString();
       });
-      pgrep.on('error', () => resolve([]));
-      pgrep.on('close', () => {
+      pgrep.on('error', err => {
+        this.logger?.warn(`[scanProcessesUnix] pgrep error: ${err.message}`);
+        resolve([]);
+      });
+      pgrep.on('close', code => {
+        if (code !== 0 && code !== 1) {
+          // code 1 means no processes found (which is fine)
+          this.logger?.warn(`[scanProcessesUnix] pgrep exited with code ${code}`);
+        }
+
         const pids = stdout
           .trim()
           .split('\n')
           .map(s => parseInt(s.trim(), 10))
           .filter(n => !isNaN(n));
+
+        this.logger?.info(`[scanProcessesUnix] Found PIDs: ${pids.join(', ') || 'none'}`);
+
         if (pids.length === 0) {
           resolve([]);
           return;
@@ -416,7 +431,12 @@ export class InstanceManager {
               }
             }
             pending--;
-            if (pending === 0) resolve(results);
+            if (pending === 0) {
+              this.logger?.info(
+                `[scanProcessesUnix] Found processes with ports: ${JSON.stringify(results)}`
+              );
+              resolve(results);
+            }
           });
         }
       });
@@ -429,6 +449,8 @@ export class InstanceManager {
    */
   private scanProcessesWindows(): Promise<DiscoveredProcess[]> {
     return new Promise(resolve => {
+      this.logger?.info('[scanProcessesWindows] Running tasklist and netstat');
+
       let tasklistOut = '';
       let netstatOut = '';
       let completed = 0;
@@ -439,17 +461,21 @@ export class InstanceManager {
         if (completed < 2) return;
 
         if (errored >= 2) {
+          this.logger?.warn('[scanProcessesWindows] Both commands errored');
           resolve([]);
           return;
         }
 
         // Parse tasklist CSV — find PIDs of opencode processes
         // CSV format: "ImageName","PID","SessionName","Session#","MemUsage"
+        // Match opencode.exe or opencode as exact image name (not opencodehelper, my-opencode-tool, etc.)
         const opencodePids = new Set<number>();
         for (const line of tasklistOut.split('\n')) {
-          if (line.toLowerCase().includes('opencode')) {
-            const csvParts = line.split('","');
-            if (csvParts.length >= 2) {
+          const csvParts = line.split('","');
+          if (csvParts.length >= 2) {
+            // ImageName is quoted: "opencode.exe" -> remove quotes and check
+            const imageName = csvParts[0].toLowerCase().replace(/^"|"$/g, '');
+            if (imageName === 'opencode' || imageName === 'opencode.exe') {
               const pid = parseInt(csvParts[1], 10);
               if (!isNaN(pid)) {
                 opencodePids.add(pid);
@@ -457,6 +483,10 @@ export class InstanceManager {
             }
           }
         }
+
+        this.logger?.info(
+          `[scanProcessesWindows] Found PIDs: ${[...opencodePids].join(', ') || 'none'}`
+        );
 
         if (opencodePids.size === 0) {
           resolve([]);
@@ -478,6 +508,10 @@ export class InstanceManager {
             }
           }
         }
+
+        this.logger?.info(
+          `[scanProcessesWindows] Found processes with ports: ${JSON.stringify(results)}`
+        );
         resolve(results);
       };
 
