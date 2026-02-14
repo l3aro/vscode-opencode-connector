@@ -156,9 +156,9 @@ async function discoverAndConnect(retries: number = 3, delayMs: number = 2000): 
 
     // If processes were found but none matched our workspace, no point retrying
     // (unless a new instance happens to spawn mid-delay, which is unlikely)
-    if (!foundMatchingProcess && attempt < retries) {
+    if (!foundMatchingProcess) {
       outputChannel?.info(
-        '[discoverAndConnect] Processes found but none match workspace, skipping remaining retries'
+        '[discoverAndConnect] Processes found but none match workspace, giving up'
       );
       break;
     }
