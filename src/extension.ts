@@ -107,30 +107,34 @@ async function discoverAndConnect(retries: number = 3, delayMs: number = 2000): 
     );
 
     if (processes.length === 0) {
-      // No processes found, try again
+      // No processes found, try again (server may be starting)
       continue;
     }
 
     // Deduplicate ports
     const uniquePorts = [...new Set(processes.map(p => p.port))];
 
+    // Track if any process matched our workspace
+    let foundMatchingProcess = false;
+
     // For each port, verify it's an OpenCode server serving our directory
     for (const port of uniquePorts) {
       try {
-        outputChannel?.info(`[discoverAndConnect] Checking port ${port}...`);
+        outputChannel?.debug(`[discoverAndConnect] Checking port ${port}...`);
         const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
         const pathInfo = await tempClient.getPath();
         tempClient.destroy();
 
-        outputChannel?.info(
+        outputChannel?.debug(
           `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}" vs workspace: "${workspaceDir}"`
         );
 
         const matches = pathsMatch(pathInfo.directory, workspaceDir);
-        outputChannel?.info(`[discoverAndConnect] Paths match: ${matches}`);
+        outputChannel?.debug(`[discoverAndConnect] Paths match: ${matches}`);
 
         // Normalize paths for comparison (platform-aware)
         if (matches) {
+          foundMatchingProcess = true;
           // Found a match — update the global client
           if (connectedPort !== port) {
             if (openCodeClient) {
@@ -148,6 +152,15 @@ async function discoverAndConnect(retries: number = 3, delayMs: number = 2000): 
         outputChannel?.warn(`[discoverAndConnect] Port ${port} error: ${(err as Error).message}`);
         continue;
       }
+    }
+
+    // If processes were found but none matched our workspace, no point retrying
+    // (unless a new instance happens to spawn mid-delay, which is unlikely)
+    if (!foundMatchingProcess && attempt < retries) {
+      outputChannel?.info(
+        '[discoverAndConnect] Processes found but none match workspace, skipping remaining retries'
+      );
+      break;
     }
   }
 
