@@ -468,11 +468,14 @@ export class InstanceManager {
 
         // Parse tasklist CSV — find PIDs of opencode processes
         // CSV format: "ImageName","PID","SessionName","Session#","MemUsage"
+        // Match opencode.exe or opencode as exact image name (not opencodehelper, my-opencode-tool, etc.)
         const opencodePids = new Set<number>();
         for (const line of tasklistOut.split('\n')) {
-          if (line.toLowerCase().includes('opencode')) {
-            const csvParts = line.split('","');
-            if (csvParts.length >= 2) {
+          const csvParts = line.split('","');
+          if (csvParts.length >= 2) {
+            // ImageName is quoted: "opencode.exe" -> remove quotes and check
+            const imageName = csvParts[0].toLowerCase().replace(/^"|"$/g, '');
+            if (imageName === 'opencode' || imageName === 'opencode.exe') {
               const pid = parseInt(csvParts[1], 10);
               if (!isNaN(pid)) {
                 opencodePids.add(pid);
