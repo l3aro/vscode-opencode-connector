@@ -268,10 +268,14 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
   extensionContext = context;
 
   // Create log output channel for user-accessible logging (View → Output → OpenCode Connector)
-  outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
-  context.subscriptions.push(outputChannel);
-
-  outputChannel.info('OpenCode Connector extension is now active');
+  try {
+    outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
+    context.subscriptions.push(outputChannel);
+    outputChannel.info('OpenCode Connector extension is now active');
+  } catch (err) {
+    // Fallback: use console if OutputChannel fails (e.g., early activation)
+    console.error('Failed to create output channel:', err);
+  }
 
   try {
     // Initialize configuration manager (singleton)
