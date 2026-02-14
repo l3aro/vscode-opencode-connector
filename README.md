@@ -47,6 +47,32 @@ You can customize the extension behavior through the following VS Code settings:
 - VS Code 1.94.0 or higher
 - [OpenCode](https://opencode.ai) installed and available in your PATH (or configured via `opencode.binaryPath`)
 
+## Running OpenCode
+
+For the extension to detect your OpenCode instance, it must be running in **server mode** with a port specified:
+
+```bash
+opencode --port 4096
+```
+
+The extension will automatically:
+1. **Discover** running OpenCode instances by scanning for processes with `--port`
+2. **Match** instances to your current workspace directory
+3. **Connect** to the correct instance automatically
+
+If no running instance is found for your workspace, the extension will spawn one automatically in the integrated terminal.
+
+### Manual Start
+
+If you want to start OpenCode manually:
+
+```bash
+# Terminal 1
+opencode --port 4096
+```
+
+Then use VS Code as normal - the extension will detect and connect to it.
+
 ## Credits
 
 This extension is inspired by:
