@@ -177,12 +177,24 @@ async function discoverAndConnect(retries: number = 3, delayMs: number = 2000): 
  * @returns true if connected
  */
 async function ensureConnected(): Promise<boolean> {
-  // 1. Check if current client is still alive
+  // 1. Check if current client is still alive AND serving the correct workspace
   if (openCodeClient) {
     try {
       const connected = await openCodeClient.testConnection();
       if (connected) {
-        return true;
+        // Client is alive — verify it's serving the current workspace
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+          const currentWorkspaceDir = workspaceFolders[0].uri.fsPath;
+          const pathInfo = await openCodeClient.getPath();
+          if (pathsMatch(pathInfo.directory, currentWorkspaceDir)) {
+            return true; // Client is alive and serving correct workspace
+          }
+          // Client is alive but serving wrong workspace — destroy and re-discover
+          openCodeClient.destroy();
+          openCodeClient = undefined;
+          connectedPort = undefined;
+        }
       }
     } catch {
       // Current client is dead, try discovery
