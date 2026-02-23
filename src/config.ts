@@ -71,7 +71,12 @@ export class ConfigManager {
    * Get default configuration values.
    * @returns Object containing default values
    */
-  public getDefaults(): { port: number; binaryPath: string; codeActionSeverityLevels: string[]; autoFocusTerminal: boolean } {
+  public getDefaults(): {
+    port: number;
+    binaryPath: string;
+    codeActionSeverityLevels: string[];
+    autoFocusTerminal: boolean;
+  } {
     return {
       port: 4096,
       binaryPath: '',
