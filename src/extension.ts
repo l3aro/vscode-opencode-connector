@@ -329,10 +329,11 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
 
     // Set up logger for InstanceManager to use the OutputChannel
     if (outputChannel) {
+      const channel = outputChannel;
       instanceManager.setLogger({
-        info: (msg: string) => outputChannel.info(msg),
-        warn: (msg: string) => outputChannel.warn(msg),
-        error: (msg: string) => outputChannel.error(msg),
+        info: (msg: string) => channel.info(msg),
+        warn: (msg: string) => channel.warn(msg),
+        error: (msg: string) => channel.error(msg),
       });
     }
 
