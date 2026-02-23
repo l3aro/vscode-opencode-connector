@@ -647,6 +647,49 @@ export class InstanceManager {
   private getWorkspacePath(): string {
     return WorkspaceUtils.getWorkspacePath();
   }
+
+  /**
+   * Focus an existing OpenCode terminal by workspace hash
+   * @param workspaceHash - Optional workspace hash to find specific terminal
+   * @returns Promise<boolean> - true if terminal was found and focused, false otherwise
+   */
+  public async focusTerminal(workspaceHash?: string): Promise<boolean> {
+    // Debug: log all available terminals
+    const allTerminals = vscode.window.terminals.map(t => t.name);
+    this.logger?.info(`[focusTerminal] Available terminals: ${JSON.stringify(allTerminals)}`);
+
+    // Try multiple matching strategies
+    
+    // 1. Match "OpenCode: <hash>" (the standard pattern from spawnInTerminal)
+    let terminal = vscode.window.terminals.find(t =>
+      t.name.startsWith('OpenCode: ')
+    );
+
+    // 2. Match "opencode" case-insensitively (for manually created terminals)
+    if (!terminal) {
+      terminal = vscode.window.terminals.find(t =>
+        t.name.toLowerCase() === 'opencode'
+      );
+    }
+
+    // 3. Match any terminal containing "opencode" (most permissive)
+    if (!terminal) {
+      terminal = vscode.window.terminals.find(t =>
+        t.name.toLowerCase().includes('opencode')
+      );
+    }
+
+    if (terminal) {
+      this.logger?.info(`[focusTerminal] Found terminal: "${terminal.name}", focusing...`);
+      // Focus the terminal (true = preserveFocus: false, meaning it takes focus)
+      terminal.show(true);
+      return true;
+    }
+
+    // No OpenCode terminal found
+    this.logger?.warn(`[focusTerminal] No OpenCode terminal found. Available: ${JSON.stringify(allTerminals)}`);
+    return false;
+  }
 }
 
 export default InstanceManager;
