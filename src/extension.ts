@@ -619,6 +619,31 @@ const addMultipleFilesCommand = vscode.commands.registerCommand(
     quickPick.items = items;
     quickPick.placeholder = 'Select files to add to prompt';
     quickPick.canPickMany = true;
+    quickPick.matchOnDescription = true;
+    quickPick.matchOnDetail = true;
+    quickPick.title = 'Select Files to Add to OpenCode';
+
+    // Add Select All / Unselect All buttons
+    const selectAllButton: vscode.QuickInputButton = {
+      iconPath: new vscode.ThemeIcon('check'),
+      tooltip: 'Select All'
+    };
+    const unselectAllButton: vscode.QuickInputButton = {
+      iconPath: new vscode.ThemeIcon('circle-slash'),
+      tooltip: 'Unselect All'
+    };
+    quickPick.buttons = [selectAllButton, unselectAllButton];
+
+    // Handle button clicks
+    quickPick.onDidTriggerButton(async (button) => {
+      if (button === selectAllButton) {
+        quickPick.selectedItems = [...items];
+      } else if (button === unselectAllButton) {
+        quickPick.selectedItems = [];
+      }
+    });
+
+    // Handle selection
 
     quickPick.placeholder = 'Select files to add to prompt';
 
@@ -700,6 +725,31 @@ const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
     quickPick.items = items;
     quickPick.placeholder = 'Select files to add to prompt';
     quickPick.canPickMany = true;
+    quickPick.matchOnDescription = true;
+    quickPick.matchOnDetail = true;
+    quickPick.title = 'Select Files to Add to OpenCode';
+
+    // Add Select All / Unselect All buttons
+    const selectAllButton: vscode.QuickInputButton = {
+      iconPath: new vscode.ThemeIcon('check'),
+      tooltip: 'Select All'
+    };
+    const unselectAllButton: vscode.QuickInputButton = {
+      iconPath: new vscode.ThemeIcon('circle-slash'),
+      tooltip: 'Unselect All'
+    };
+    quickPick.buttons = [selectAllButton, unselectAllButton];
+
+    // Handle button clicks
+    quickPick.onDidTriggerButton(async (button) => {
+      if (button === selectAllButton) {
+        quickPick.selectedItems = [...items];
+      } else if (button === unselectAllButton) {
+        quickPick.selectedItems = [];
+      }
+    });
+
+    // Handle selection
 
     quickPick.placeholder = 'Select files to add to prompt';
 
