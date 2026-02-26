@@ -6,6 +6,7 @@ import {
   handleAddMultipleFiles,
   handleAddToPrompt,
   handleCheckInstance,
+  handleSelectDefaultInstance,
   handleShowWorkspace,
   showStatusBarMenu,
 } from './commands';
@@ -187,13 +188,20 @@ function registerCommands(): void {
     async () => showStatusBarMenu(connectionService!, outputChannel!)
   );
 
+  // Select default instance command
+  const selectDefaultInstanceCommand = vscode.commands.registerCommand(
+    'opencodeConnector.selectDefaultInstance',
+    async () => handleSelectDefaultInstance(connectionService!, outputChannel!)
+  );
+
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
     addMultipleFilesCommand,
-    statusBarMenuCommand
+    statusBarMenuCommand,
+    selectDefaultInstanceCommand
   );
 }
 

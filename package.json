@@ -42,6 +42,10 @@
       {
         "command": "opencodeConnector.showStatusBarMenu",
         "title": "OpenCode: Show Menu"
+      },
+      {
+        "command": "opencodeConnector.selectDefaultInstance",
+        "title": "OpenCode: Select Default Instance"
       }
     ],
     "keybindings": [
