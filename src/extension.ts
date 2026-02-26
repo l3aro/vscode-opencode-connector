@@ -164,45 +164,13 @@ function registerCommands(): void {
       handleExplainAndFix(connectionService!, outputChannel!, diagnostic, uri)
   );
 
-  // Alias commands with 'opencode.' prefix for compatibility
-  const opencodeCheckInstanceCommand = vscode.commands.registerCommand(
-    'opencode.checkInstance',
-    async () => handleCheckInstance(connectionService!, outputChannel!)
-  );
-
-  const opencodeShowWorkspaceCommand = vscode.commands.registerCommand(
-    'opencode.showWorkspace',
-    async () => handleShowWorkspace(connectionService!, outputChannel!)
-  );
-
-  const opencodeAddToPromptCommand = vscode.commands.registerCommand(
-    'opencode.addToPrompt',
-    async () => handleAddToPrompt(connectionService!, outputChannel!)
-  );
-
-  const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
-    'opencode.addMultipleFiles',
-    async () => handleAddMultipleFiles(connectionService!, outputChannel!)
-  );
-
-  const opencodeExplainAndFixCommand = vscode.commands.registerCommand(
-    'opencode.explainAndFix',
-    async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) =>
-      handleExplainAndFix(connectionService!, outputChannel!, diagnostic, uri)
-  );
-
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
     addMultipleFilesCommand,
-    explainAndFixCommand,
-    opencodeCheckInstanceCommand,
-    opencodeShowWorkspaceCommand,
-    opencodeAddToPromptCommand,
-    opencodeAddMultipleFilesCommand,
-    opencodeExplainAndFixCommand
+    explainAndFixCommand
   );
 }
 
