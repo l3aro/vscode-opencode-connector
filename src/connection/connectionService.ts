@@ -389,7 +389,7 @@ export class ConnectionService {
    * @returns true if successful
    */
   async focusTerminal(): Promise<boolean> {
-    return this.instanceManager.focusTerminal();
+    return this.instanceManager.focusTerminal(this.connectedPort);
   }
 
   /**

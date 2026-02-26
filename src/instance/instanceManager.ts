@@ -99,9 +99,24 @@ export class InstanceManager {
   private static instance: InstanceManager;
   private configManager: ConfigManager;
   private logger?: Logger;
+  private portToTerminal = new Map<number, vscode.Terminal>();
+  private disposables: vscode.Disposable[] = [];
 
   private constructor(configManager: ConfigManager) {
     this.configManager = configManager;
+    this.disposables.push(
+      vscode.window.onDidCloseTerminal(terminal => this.handleTerminalClose(terminal))
+    );
+  }
+
+  private handleTerminalClose(terminal: vscode.Terminal): void {
+    for (const [port, mappedTerminal] of this.portToTerminal) {
+      if (mappedTerminal === terminal) {
+        this.portToTerminal.delete(port);
+        this.logger?.info(`Terminal closed for port ${port}`);
+        break;
+      }
+    }
   }
 
   /**
@@ -628,6 +643,9 @@ export class InstanceManager {
 
       // Send the new command
       existingTerminal.sendText(fullCommand);
+
+      // Track this terminal for the port
+      this.portToTerminal.set(port, existingTerminal);
     } else {
       // Create a new terminal, make it visible and focused
       const terminal = vscode.window.createTerminal({ name: terminalName });
@@ -637,6 +655,9 @@ export class InstanceManager {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       terminal.sendText(fullCommand);
+
+      // Track this terminal for the port
+      this.portToTerminal.set(port, terminal);
     }
   }
 
@@ -650,26 +671,38 @@ export class InstanceManager {
 
   /**
    * Focus an existing OpenCode terminal
+   * @param port - Optional port number to focus specific terminal
    * @returns Promise<boolean> - true if terminal was found and focused, false otherwise
    */
-  public async focusTerminal(): Promise<boolean> {
+  public async focusTerminal(port?: number): Promise<boolean> {
     // Debug: log all available terminals
     const allTerminals = vscode.window.terminals.map(t => t.name);
     this.logger?.info(`[focusTerminal] Available terminals: ${JSON.stringify(allTerminals)}`);
 
-    // Try multiple matching strategies
+    let terminal: vscode.Terminal | undefined;
 
-    // 1. Match "OpenCode: <hash>" (the standard pattern from spawnInTerminal)
-    let terminal = vscode.window.terminals.find(t => t.name.startsWith('OpenCode: '));
-
-    // 2. Match "opencode" case-insensitively (for manually created terminals)
-    if (!terminal) {
-      terminal = vscode.window.terminals.find(t => t.name.toLowerCase() === 'opencode');
+    // If port provided, try to find terminal from Map first
+    if (port !== undefined) {
+      terminal = this.portToTerminal.get(port);
+      if (terminal) {
+        this.logger?.info(`[focusTerminal] Found terminal for port ${port}: "${terminal.name}"`);
+      }
     }
 
-    // 3. Match any terminal containing "opencode" (most permissive)
+    // Fall back to name-based matching if no port or terminal not found in Map
     if (!terminal) {
-      terminal = vscode.window.terminals.find(t => t.name.toLowerCase().includes('opencode'));
+      // 1. Match "OpenCode: <hash>" (the standard pattern from spawnInTerminal)
+      terminal = vscode.window.terminals.find(t => t.name.startsWith('OpenCode: '));
+
+      // 2. Match "opencode" case-insensitively (for manually created terminals)
+      if (!terminal) {
+        terminal = vscode.window.terminals.find(t => t.name.toLowerCase() === 'opencode');
+      }
+
+      // 3. Match any terminal containing "opencode" (most permissive)
+      if (!terminal) {
+        terminal = vscode.window.terminals.find(t => t.name.toLowerCase().includes('opencode'));
+      }
     }
 
     if (terminal) {
