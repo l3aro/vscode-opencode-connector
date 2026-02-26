@@ -42,8 +42,8 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
   // Create log output channel for user-accessible logging (View → Output → OpenCode Connector)
   try {
     outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
-    context.subscriptions.push(outputChannel);
-    outputChannel.info('OpenCode Connector extension is now active');
+    context?.subscriptions?.push(outputChannel);
+    outputChannel?.info('OpenCode Connector extension is now active');
   } catch (err) {
     // Fallback: use console if OutputChannel fails (e.g., early activation)
     console.error('Failed to create output channel:', err);
@@ -111,11 +111,11 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
         providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
       }
     );
-    extensionContext?.subscriptions.push(codeActionProvider);
+    extensionContext?.subscriptions?.push(codeActionProvider);
 
     // Initialize and register Gutter Action Provider
     gutterActionProvider = new OpenCodeGutterActionProvider();
-    extensionContext?.subscriptions.push(gutterActionProvider);
+    extensionContext?.subscriptions?.push(gutterActionProvider);
 
     // Register gutter click handler command
     const gutterClickCommand = vscode.commands.registerCommand(
@@ -128,7 +128,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
         }
       }
     );
-    extensionContext?.subscriptions.push(gutterClickCommand);
+    extensionContext?.subscriptions?.push(gutterClickCommand);
 
     // Register workspace change handler
     registerWorkspaceHandlers();
@@ -187,12 +187,13 @@ function registerCommands(): void {
   );
 
   // Push all subscriptions for cleanup
-  extensionContext?.subscriptions.push(
+  extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
     addMultipleFilesCommand
   );
+
 }
 
 /**
@@ -214,7 +215,7 @@ function registerWorkspaceHandlers(): void {
     }
   });
 
-  extensionContext?.subscriptions.push(workspaceFoldersChange, configChange);
+  extensionContext?.subscriptions?.push(workspaceFoldersChange, configChange);
 }
 
 /**

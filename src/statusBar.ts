@@ -39,7 +39,7 @@ export class StatusBarManager {
     this.updateConnectionStatus(false);
 
     this.statusBarItem.show();
-    context.subscriptions.push(this.statusBarItem);
+    context?.subscriptions?.push(this.statusBarItem);
   }
 
   /**
