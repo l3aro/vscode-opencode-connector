@@ -541,13 +541,53 @@ function registerCommands(): void {
     }
   );
 
-  const opencodeAddFileCommand = vscode.commands.registerCommand(
-    'opencode.addToPrompt',
+  // Multi-file picker command
+  const addMultipleFilesCommand = vscode.commands.registerCommand(
+    'opencodeConnector.addMultipleFiles',
     async () => {
-      const ref = getActiveFileRef();
-      if (!ref) {
-        await vscode.window.showWarningMessage('No active file to reference');
+      // Get all tabs from all tab groups
+      const allTabs = vscode.window.tabGroups.all.flatMap(group => group.tabs);
+
+      // Filter to only text editor tabs (TabInputText)
+      const textEditorTabs = allTabs.filter(
+        (tab): tab is vscode.Tab => tab.input instanceof vscode.TabInputText
+      );
+
+      if (textEditorTabs.length === 0) {
+        await vscode.window.showInformationMessage('No open editor tabs found');
         return;
+      }
+
+      // Build QuickPick items with picked: true for checkbox state
+      const items: vscode.QuickPickItem[] = textEditorTabs.map(tab => {
+        const input = tab.input as vscode.TabInputText;
+        const uri = input.uri;
+        const fileName = vscode.workspace.asRelativePath(uri, false);
+        const fullPath = uri.fsPath;
+
+        // Extract directory for description (relative path without filename)
+        const dirMatch = fileName.match(/^(.+?)[/\\][^/\\]+$/);
+        const description = dirMatch ? dirMatch[1] + '/' : '';
+
+        return {
+          label: path.basename(fileName),
+          description: description,
+          detail: fullPath,
+          picked: true, // Pre-select all for checkbox state
+        };
+      });
+
+      // Use showQuickPick with canPickMany option
+      const selected = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        placeholder: 'Select files to add to prompt',
+        matchOnDescription: true,
+        matchOnDetail: true,
+        title: 'Select Files to Add to OpenCode',
+      });
+
+      if (!selected || selected.length === 0) {
+        return; // User cancelled
       }
 
       const connected = await ensureConnected();
@@ -560,31 +600,113 @@ function registerCommands(): void {
       }
 
       try {
-        const port = openCodeClient.getPort();
-        const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
-        outputChannel?.info(`[addToPrompt] Sending to port ${port}, cwd: ${workspaceDir}`);
-        outputChannel?.debug(`[addToPrompt] Content: "${ref}"`);
-        const result = await openCodeClient.appendPrompt(ref);
-        outputChannel?.debug(`[addToPrompt] Result: ${result}`);
-        showTransientNotification(`Sent: ${ref}`);
-        // Auto-focus terminal if enabled
-        if (ConfigManager.getInstance().getAutoFocusTerminal()) {
-          outputChannel?.debug(`[addToPrompt] Auto-focus enabled, attempting to focus terminal`);
-          try {
-            const focused = await InstanceManager.getInstance().focusTerminal();
-            outputChannel?.debug(`[addToPrompt] Terminal focus result: ${focused}`);
-          } catch (err) {
-            outputChannel?.warn(`[addToPrompt] Terminal focus error: ${(err as Error).message}`);
-            // Silently ignore focus errors - don't fail the main operation
-          }
-        } else {
-          outputChannel?.debug(`[addToPrompt] Auto-focus disabled in config`);
-        }
+        const _port = openCodeClient.getPort();
+        const _workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+        outputChannel?.info(`[addMultipleFiles] Sending to port ${_port}, cwd: ${_workspaceDir}`);
+        // Build all file references with spaces between them
+        const refs = selected
+          .map(item => {
+            const relativePath = (item.description || '') + item.label;
+            return `@${relativePath}`;
+          })
+          .join(' ');
+
+        outputChannel?.debug(`[addMultipleFiles] Sending: "${refs}"`);
+        await openCodeClient.appendPrompt(refs);
+
+        outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
       } catch (err) {
-        await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
+        await vscode.window.showErrorMessage(
+          `Failed to send references: ${(err as Error).message}`
+        );
       }
     }
   );
+
+  // Also register with opencode.* prefix for compatibility
+  const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
+    'opencode.addMultipleFiles',
+    async () => {
+      // Get all tabs from all tab groups
+      const allTabs = vscode.window.tabGroups.all.flatMap(group => group.tabs);
+
+      // Filter to only text editor tabs (TabInputText)
+      const textEditorTabs = allTabs.filter(
+        (tab): tab is vscode.Tab => tab.input instanceof vscode.TabInputText
+      );
+
+      if (textEditorTabs.length === 0) {
+        await vscode.window.showInformationMessage('No open editor tabs found');
+        return;
+      }
+
+      // Build QuickPick items with picked: true for checkbox state
+      const items: vscode.QuickPickItem[] = textEditorTabs.map(tab => {
+        const input = tab.input as vscode.TabInputText;
+        const uri = input.uri;
+        const fileName = vscode.workspace.asRelativePath(uri, false);
+        const fullPath = uri.fsPath;
+
+        // Extract directory for description (relative path without filename)
+        const dirMatch = fileName.match(/^(.+?)[/\\][^/\\]+$/);
+        const description = dirMatch ? dirMatch[1] + '/' : '';
+
+        return {
+          label: path.basename(fileName),
+          description: description,
+          detail: fullPath,
+          picked: true, // Pre-select all for checkbox state
+        };
+      });
+
+      // Use showQuickPick with canPickMany option
+      const selected = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        placeholder: 'Select files to add to prompt',
+        matchOnDescription: true,
+        matchOnDetail: true,
+        title: 'Select Files to Add to OpenCode',
+      });
+
+      if (!selected || selected.length === 0) {
+        return; // User cancelled
+      }
+
+      const connected = await ensureConnected();
+      if (!connected || !openCodeClient) {
+        const msg = lastAutoSpawnError
+          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+        await vscode.window.showErrorMessage(msg);
+        return;
+      }
+
+      try {
+        const _port = openCodeClient.getPort();
+        const _workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+        outputChannel?.info(`[addMultipleFiles] Sending to port ${_port}, cwd: ${_workspaceDir}`);
+        // Build all file references with spaces between them
+        const refs = selected
+          .map(item => {
+            const relativePath = (item.description || '') + item.label;
+            return `@${relativePath}`;
+          })
+          .join(' ');
+
+        outputChannel?.debug(`[addMultipleFiles] Sending: "${refs}"`);
+        await openCodeClient.appendPrompt(refs);
+
+        outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
+        showTransientNotification(`Sent ${selected.length} files to OpenCode`);
+      } catch (err) {
+        await vscode.window.showErrorMessage(
+          `Failed to send references: ${(err as Error).message}`
+        );
+      }
+    }
+  );
+
+  // Also register with opencode.* prefix for compatibility
 
   // Explain and Fix code action command
   const explainAndFixCommand = vscode.commands.registerCommand(
@@ -661,11 +783,16 @@ function registerCommands(): void {
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions.push(
     statusCommand,
+    // Push all subscriptions for cleanup
+    statusCommand,
     workspaceCommand,
     opencodeCheckInstanceCommand,
     opencodeShowWorkspaceCommand,
-    addFileCommand,
     opencodeAddFileCommand,
+    addFileCommand,
+    addMultipleFilesCommand,
+    opencodeAddMultipleFilesCommand,
+
     explainAndFixCommand,
     opencodeExplainAndFixCommand
   );

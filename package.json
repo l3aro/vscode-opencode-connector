@@ -43,6 +43,13 @@
         "mac": "cmd+shift+a",
         "when": "editorTextFocus",
         "title": "Add to OpenCode Prompt"
+      },
+      {
+        "command": "opencodeConnector.addMultipleFiles",
+        "key": "ctrl+shift+alt+a",
+        "mac": "cmd+shift+alt+a",
+        "when": "editorTextFocus",
+        "title": "Add Multiple Files to OpenCode"
       }
     ],
     "configuration": {
