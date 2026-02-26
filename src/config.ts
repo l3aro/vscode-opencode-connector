@@ -41,6 +41,15 @@ export class ConfigManager {
   }
 
   /**
+   * Get auto focus terminal setting.
+   * @returns Whether to automatically focus the terminal when spawning OpenCode (default: true)
+   */
+  public getAutoFocusTerminal(): boolean {
+    const config = vscode.workspace.getConfiguration('opencode');
+    return config.get<boolean>('autoFocusTerminal') ?? true;
+  }
+
+  /**
    * Set OpenCode server port.
    * @param port - Port number to use
    */
@@ -62,11 +71,17 @@ export class ConfigManager {
    * Get default configuration values.
    * @returns Object containing default values
    */
-  public getDefaults(): { port: number; binaryPath: string; codeActionSeverityLevels: string[] } {
+  public getDefaults(): {
+    port: number;
+    binaryPath: string;
+    codeActionSeverityLevels: string[];
+    autoFocusTerminal: boolean;
+  } {
     return {
       port: 4096,
       binaryPath: '',
       codeActionSeverityLevels: ['error', 'warning', 'information', 'hint'],
+      autoFocusTerminal: true,
     };
   }
 

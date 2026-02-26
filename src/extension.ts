@@ -329,10 +329,11 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
 
     // Set up logger for InstanceManager to use the OutputChannel
     if (outputChannel) {
+      const channel = outputChannel;
       instanceManager.setLogger({
-        info: (msg: string) => outputChannel.info(msg),
-        warn: (msg: string) => outputChannel.warn(msg),
-        error: (msg: string) => outputChannel.error(msg),
+        info: (msg: string) => channel.info(msg),
+        warn: (msg: string) => channel.warn(msg),
+        error: (msg: string) => channel.error(msg),
       });
     }
 
@@ -521,6 +522,19 @@ function registerCommands(): void {
         const result = await openCodeClient.appendPrompt(ref);
         outputChannel?.debug(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
+        // Auto-focus terminal if enabled
+        if (ConfigManager.getInstance().getAutoFocusTerminal()) {
+          outputChannel?.debug(`[addToPrompt] Auto-focus enabled, attempting to focus terminal`);
+          try {
+            const focused = await InstanceManager.getInstance().focusTerminal();
+            outputChannel?.debug(`[addToPrompt] Terminal focus result: ${focused}`);
+          } catch (err) {
+            outputChannel?.warn(`[addToPrompt] Terminal focus error: ${(err as Error).message}`);
+            // Silently ignore focus errors - don't fail the main operation
+          }
+        } else {
+          outputChannel?.debug(`[addToPrompt] Auto-focus disabled in config`);
+        }
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
       }
@@ -553,6 +567,19 @@ function registerCommands(): void {
         const result = await openCodeClient.appendPrompt(ref);
         outputChannel?.debug(`[addToPrompt] Result: ${result}`);
         showTransientNotification(`Sent: ${ref}`);
+        // Auto-focus terminal if enabled
+        if (ConfigManager.getInstance().getAutoFocusTerminal()) {
+          outputChannel?.debug(`[addToPrompt] Auto-focus enabled, attempting to focus terminal`);
+          try {
+            const focused = await InstanceManager.getInstance().focusTerminal();
+            outputChannel?.debug(`[addToPrompt] Terminal focus result: ${focused}`);
+          } catch (err) {
+            outputChannel?.warn(`[addToPrompt] Terminal focus error: ${(err as Error).message}`);
+            // Silently ignore focus errors - don't fail the main operation
+          }
+        } else {
+          outputChannel?.debug(`[addToPrompt] Auto-focus disabled in config`);
+        }
       } catch (err) {
         await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
       }
@@ -579,6 +606,14 @@ function registerCommands(): void {
         );
         await openCodeClient.appendPrompt(prompt);
         showTransientNotification(`Sent explanation request for diagnostic`);
+        // Auto-focus terminal if enabled
+        if (ConfigManager.getInstance().getAutoFocusTerminal()) {
+          try {
+            await InstanceManager.getInstance().focusTerminal();
+          } catch {
+            // Silently ignore focus errors - don't fail the main operation
+          }
+        }
       } catch (err) {
         await vscode.window.showErrorMessage(
           `Failed to send explanation: ${(err as Error).message}`
@@ -607,6 +642,14 @@ function registerCommands(): void {
         );
         await openCodeClient.appendPrompt(prompt);
         showTransientNotification(`Sent explanation request for diagnostic`);
+        // Auto-focus terminal if enabled
+        if (ConfigManager.getInstance().getAutoFocusTerminal()) {
+          try {
+            await InstanceManager.getInstance().focusTerminal();
+          } catch {
+            // Silently ignore focus errors - don't fail the main operation
+          }
+        }
       } catch (err) {
         await vscode.window.showErrorMessage(
           `Failed to send explanation: ${(err as Error).message}`

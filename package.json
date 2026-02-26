@@ -76,6 +76,11 @@
               "hint"
             ]
           }
+        },
+        "opencode.autoFocusTerminal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically focus OpenCode terminal after sending prompts"
         }
       }
     }
