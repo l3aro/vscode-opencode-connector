@@ -88,7 +88,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
 
     // Subscribe to connection state changes FIRST (before other init that might fail)
     const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
-      statusBarManager?.updateConnectionStatus(event.connected);
+      statusBarManager?.updateConnectionStatus(event.connected, event.port);
     });
     extensionContext?.subscriptions?.push(connectionStateSub);
 
@@ -131,7 +131,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     connectionService
       .discoverAndConnect()
       .then(connected => {
-        statusBarManager?.updateConnectionStatus(connected);
+        statusBarManager?.updateConnectionStatus(connected, connectionService?.getPort());
       })
       .catch(() => {
         // Silently ignore — ensureConnected() will retry on-demand

@@ -45,14 +45,15 @@ export class StatusBarManager {
   /**
    * Update the connection status display.
    * @param connected - Whether OpenCode is connected
+   * @param port - Optional port number when connected
    */
-  public updateConnectionStatus(connected: boolean): void {
+  public updateConnectionStatus(connected: boolean, port?: number): void {
     this.isConnected = connected;
 
     if (this.statusBarItem) {
       // Status bar text with icon - show different text based on connection state
       this.statusBarItem.text = connected
-        ? '$(circle-filled) OpenCode'
+        ? `$(circle-filled) OpenCode :${port}`
         : '$(circle-outline) OpenCode';
 
       // Color based on connection state
