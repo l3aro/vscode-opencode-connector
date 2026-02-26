@@ -12,6 +12,7 @@ import {
 import { ConfigManager } from './config';
 import { ConnectionService, isRemoteSession } from './connection/connectionService';
 import { ContextManager } from './context/contextManager';
+import { DefaultInstanceManager } from './instance/defaultInstanceManager';
 import { InstanceManager } from './instance/instanceManager';
 import { OpenCodeCodeActionProvider } from './providers/codeActionProvider';
 import { OpenCodeGutterActionProvider } from './providers/gutterActionProvider';
@@ -206,6 +207,8 @@ function registerWorkspaceHandlers(): void {
     outputChannel?.info(
       `Workspace changed: ${workspaceInfo.rootCount} root(s), primary: ${workspaceInfo.primaryRoot?.name || 'none'}`
     );
+    DefaultInstanceManager.getInstance().clearDefault();
+    outputChannel?.info('Cleared default instance due to workspace change');
   });
 
   // Handle configuration changes
