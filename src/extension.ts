@@ -541,8 +541,6 @@ function registerCommands(): void {
     }
   );
 
-
-
   // Multi-file picker command
   const addMultipleFilesCommand = vscode.commands.registerCommand(
     'opencodeConnector.addMultipleFiles',
