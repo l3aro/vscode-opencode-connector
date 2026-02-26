@@ -614,6 +614,11 @@ const addMultipleFilesCommand = vscode.commands.registerCommand(
       };
     });
 
+    // Create and configure QuickPick
+    const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem>();
+    quickPick.items = items;
+    quickPick.placeholder = 'Select files to add to prompt';
+
     quickPick.placeholder = 'Select files to add to prompt';
 
     // Handle selection
@@ -688,6 +693,11 @@ const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
         detail: fullPath,
       };
     });
+
+    // Create and configure QuickPick
+    const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem>();
+    quickPick.items = items;
+    quickPick.placeholder = 'Select files to add to prompt';
 
     quickPick.placeholder = 'Select files to add to prompt';
 
