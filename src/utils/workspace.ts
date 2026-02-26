@@ -204,6 +204,35 @@ export const WorkspaceUtils = {
   getWorkspaceHash(workspacePath: string): string {
     return crypto.createHash('md5').update(workspacePath).digest('hex').substring(0, 8);
   },
+
+  getActiveFileRef(): string | undefined {
+    const activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) {
+      return undefined;
+    }
+
+    const document = activeEditor.document;
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+    if (!workspaceFolder) {
+      return undefined;
+    }
+
+    const relativePath = vscode.workspace.asRelativePath(document.uri);
+    let ref = `@${relativePath}`;
+
+    const selection = activeEditor.selection;
+    if (!selection.isEmpty) {
+      const startLine = selection.start.line + 1;
+      const endLine = selection.end.line + 1;
+      if (startLine === endLine) {
+        ref += `#L${startLine}`;
+      } else {
+        ref += `#L${startLine}-${endLine}`;
+      }
+    }
+
+    return ref;
+  },
 };
 
 export default WorkspaceUtils;
