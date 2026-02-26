@@ -596,7 +596,7 @@ const addMultipleFilesCommand = vscode.commands.registerCommand(
       (tab): tab is vscode.Tab => tab.input instanceof vscode.TabInputText
     );
 
-    // Build QuickPick items
+    // Build QuickPick items - add picked: true for checkbox state
     const items: vscode.QuickPickItem[] = textEditorTabs.map((tab) => {
       const input = tab.input as vscode.TabInputText;
       const uri = input.uri;
@@ -611,37 +611,59 @@ const addMultipleFilesCommand = vscode.commands.registerCommand(
         label: path.basename(fileName),
         description: description,
         detail: fullPath,
+        picked: true // Pre-select all for checkbox state
       };
     });
 
     // Create and configure QuickPick
     const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem>();
     quickPick.items = items;
+    quickPick.selectedItems = [...items]; // Select all by default
     quickPick.placeholder = 'Select files to add to prompt';
     quickPick.canPickMany = true;
     quickPick.matchOnDescription = true;
     quickPick.matchOnDetail = true;
     quickPick.title = 'Select Files to Add to OpenCode';
 
-    // Add Select All / Unselect All buttons
-    const selectAllButton: vscode.QuickInputButton = {
+    // Single toggle button that changes based on selection state
+    const toggleButton: vscode.QuickInputButton = {
       iconPath: new vscode.ThemeIcon('check'),
-      tooltip: 'Select All'
-    };
-    const unselectAllButton: vscode.QuickInputButton = {
-      iconPath: new vscode.ThemeIcon('circle-slash'),
       tooltip: 'Unselect All'
     };
-    quickPick.buttons = [selectAllButton, unselectAllButton];
+    quickPick.buttons = [toggleButton];
 
-    // Handle button clicks
-    quickPick.onDidTriggerButton(async (button) => {
-      if (button === selectAllButton) {
-        quickPick.selectedItems = [...items];
-      } else if (button === unselectAllButton) {
-        quickPick.selectedItems = [];
+    // Update button state when selection changes
+    quickPick.onDidChangeSelection((selection) => {
+      if (selection.length === items.length) {
+        // All selected - show unselect all
+        toggleButton.iconPath = new vscode.ThemeIcon('circle-slash');
+        toggleButton.tooltip = 'Unselect All';
+      } else if (selection.length === 0) {
+        // Nothing selected - show select all
+        toggleButton.iconPath = new vscode.ThemeIcon('check');
+        toggleButton.tooltip = 'Select All';
+      } else {
+        // Some selected - show select all
+        toggleButton.iconPath = new vscode.ThemeIcon('check');
+        toggleButton.tooltip = 'Select All';
       }
     });
+
+    // Handle button click - toggle all/none
+    quickPick.onDidTriggerButton(async (button) => {
+      if (button === toggleButton) {
+        const currentSelection = quickPick.selectedItems;
+        if (currentSelection.length === items.length) {
+          // All selected - unselect all
+          quickPick.selectedItems = [];
+        } else {
+          // Not all selected - select all
+          quickPick.selectedItems = [...items];
+        }
+      }
+    });
+
+    // Handle selection
 
     // Handle selection
 
