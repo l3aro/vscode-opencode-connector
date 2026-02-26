@@ -116,6 +116,14 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     );
     extensionContext?.subscriptions?.push(gutterClickCommand);
 
+    // Subscribe to connection state changes
+    const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
+      statusBarManager?.updateConnectionStatus(event.connected);
+    });
+    extensionContext?.subscriptions?.push(connectionStateSub);
+
+    // Register workspace change handlers
+
     // Register workspace change handlers
     registerWorkspaceHandlers();
 
