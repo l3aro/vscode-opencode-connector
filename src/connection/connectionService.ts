@@ -324,11 +324,6 @@ export class ConnectionService {
 
   /**
    * Disconnect from the current OpenCode instance.
-    return this.instanceManager.focusTerminal();
-
-
-  /**
-   * Disconnect from the current OpenCode instance.
    * Destroys the client and clears the connection state.
    */
   disconnect(): void {

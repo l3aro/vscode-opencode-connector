@@ -100,7 +100,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     extensionContext?.subscriptions?.push(codeActionProvider);
 
     // Initialize and register Gutter Action Provider
-    gutterActionProvider = new OpenCodeGutterActionProvider();
+    gutterActionProvider = new OpenCodeGutterActionProvider(extensionUri);
     extensionContext?.subscriptions?.push(gutterActionProvider);
 
     // Register gutter click handler command

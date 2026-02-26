@@ -14,19 +14,29 @@ export class OpenCodeGutterActionProvider {
   private decorationType: vscode.TextEditorDecorationType | undefined;
   private activeEditor: vscode.TextEditor | undefined;
   private subscriptions: vscode.Disposable[] = [];
+  private extensionUri: vscode.Uri | undefined;
+  private lastTriggeredLine: number = -1;
 
-  constructor() {
+  constructor(extensionUri?: vscode.Uri) {
+    this.extensionUri = extensionUri;
     this.createDecorationType();
     this.subscribeToEditorChanges();
+    this.subscribeToCursorChanges();
   }
 
   /**
    * Create the gutter decoration type with lightbulb icon
    */
   private createDecorationType(): void {
+    // Build the gutter icon path if extensionUri is available
+    const gutterIconPath = this.extensionUri
+      ? vscode.Uri.joinPath(this.extensionUri, 'resources', 'icon.png')
+      : undefined;
+
     this.decorationType = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
       gutterIconSize: 'contain',
+      gutterIconPath: gutterIconPath,
       overviewRulerLane: vscode.OverviewRulerLane.Left,
       light: {
         gutterIconSize: 'auto',
@@ -66,6 +76,47 @@ export class OpenCodeGutterActionProvider {
     });
 
     this.subscriptions.push(visibleRangesSub);
+  }
+
+  /**
+   * Subscribe to cursor/selection changes to detect line selection
+   */
+  private subscribeToCursorChanges(): void {
+    const cursorSub = vscode.window.onDidChangeTextEditorSelection(event => {
+      if (event.textEditor !== this.activeEditor) {
+        return;
+      }
+
+      const selection = event.selections[0];
+      if (!selection) {
+        return;
+      }
+
+      const line = selection.start.line;
+
+      // Avoid re-triggering on the same line
+      if (line === this.lastTriggeredLine) {
+        return;
+      }
+
+      // Check if there's a diagnostic on this line
+      if (this.activeEditor) {
+        const diagnostics = vscode.languages.getDiagnostics(this.activeEditor.document.uri);
+        const diagnosticOnLine = diagnostics.find(
+          d =>
+            d.range.start.line === line || (d.range.start.line <= line && d.range.end.line >= line)
+        );
+
+        if (diagnosticOnLine) {
+          this.lastTriggeredLine = line;
+          // Trigger the gutter click handler
+          this.handleGutterClick(line, (cmd, ...args) => {
+            vscode.commands.executeCommand(cmd, ...args);
+          });
+        }
+      }
+    });
+    this.subscriptions.push(cursorSub);
   }
 
   /**

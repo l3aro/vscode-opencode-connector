@@ -50,8 +50,10 @@ export class StatusBarManager {
     this.isConnected = connected;
 
     if (this.statusBarItem) {
-      // Status bar text with icon
-      this.statusBarItem.text = '$(circle-filled) OpenCode';
+      // Status bar text with icon - show different text based on connection state
+      this.statusBarItem.text = connected
+        ? '$(circle-filled) OpenCode'
+        : '$(circle-outline) OpenCode';
 
       // Color based on connection state
       if (connected) {
