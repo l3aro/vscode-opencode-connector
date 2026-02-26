@@ -581,243 +581,169 @@ function registerCommands(): void {
           outputChannel?.debug(`[addToPrompt] Auto-focus disabled in config`);
         }
       } catch (err) {
-        await vscode.window.showErrorMessage(`Failed to send reference: ${(err as Error).message}`);
+      }
+    },
+  );
+
+  // Multi-file picker command
+  const addMultipleFilesCommand = vscode.commands.registerCommand(
+    'opencodeConnector.addMultipleFiles',
+    async () => {
+      // Get all tabs from all tab groups
+      const allTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
+
+      // Filter to only text editor tabs (TabInputText)
+      const textEditorTabs = allTabs.filter(
+        (tab): tab is vscode.Tab => tab.input instanceof vscode.TabInputText
+      );
+
+      if (textEditorTabs.length === 0) {
+        await vscode.window.showInformationMessage('No open editor tabs found');
+        return;
+      }
+
+      // Build QuickPick items with picked: true for checkbox state
+      const items: vscode.QuickPickItem[] = textEditorTabs.map((tab) => {
+        const input = tab.input as vscode.TabInputText;
+        const uri = input.uri;
+        const fileName = vscode.workspace.asRelativePath(uri, false);
+        const fullPath = uri.fsPath;
+
+        // Extract directory for description (relative path without filename)
+        const dirMatch = fileName.match(/^(.+?)[/\\][^/\\]+$/);
+        const description = dirMatch ? dirMatch[1] + '/' : '';
+
+        return {
+          label: path.basename(fileName),
+          description: description,
+          detail: fullPath,
+          picked: true // Pre-select all for checkbox state
+        };
+      });
+
+      // Use showQuickPick with canPickMany option
+      const selected = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        placeholder: 'Select files to add to prompt',
+        matchOnDescription: true,
+        matchOnDetail: true,
+        title: 'Select Files to Add to OpenCode'
+      });
+
+      if (!selected || selected.length === 0) {
+        return; // User cancelled
+      }
+
+      const connected = await ensureConnected();
+      if (!connected || !openCodeClient) {
+        const msg = lastAutoSpawnError
+          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+        await vscode.window.showErrorMessage(msg);
+        return;
+      }
+
+      try {
+        const port = openCodeClient.getPort();
+        const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+        outputChannel?.info(`[addMultipleFiles] Sending to port ${port}, cwd: ${workspaceDir}`);
+
+        for (const item of selected) {
+          // Build relative path from description + label
+          const relativePath = (item.description || '') + item.label;
+          const ref = `@${relativePath}`;
+          outputChannel?.debug(`[addMultipleFiles] Sending: "${ref}"`);
+          await openCodeClient.appendPrompt(ref);
+        }
+
+        outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
+        showTransientNotification(`Sent ${selected.length} files to OpenCode`);
+      } catch (err) {
+      }
+    },
+  );
+
+  // Also register with opencode.* prefix for compatibility
+  const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
+    'opencode.addMultipleFiles',
+    async () => {
+      // Get all tabs from all tab groups
+      const allTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
+
+      // Filter to only text editor tabs (TabInputText)
+      const textEditorTabs = allTabs.filter(
+        (tab): tab is vscode.Tab => tab.input instanceof vscode.TabInputText
+      );
+
+      if (textEditorTabs.length === 0) {
+        await vscode.window.showInformationMessage('No open editor tabs found');
+        return;
+      }
+
+      // Build QuickPick items with picked: true for checkbox state
+      const items: vscode.QuickPickItem[] = textEditorTabs.map((tab) => {
+        const input = tab.input as vscode.TabInputText;
+        const uri = input.uri;
+        const fileName = vscode.workspace.asRelativePath(uri, false);
+        const fullPath = uri.fsPath;
+
+        // Extract directory for description (relative path without filename)
+        const dirMatch = fileName.match(/^(.+?)[/\\][^/\\]+$/);
+        const description = dirMatch ? dirMatch[1] + '/' : '';
+
+        return {
+          label: path.basename(fileName),
+          description: description,
+          detail: fullPath,
+          picked: true // Pre-select all for checkbox state
+        };
+      });
+
+      // Use showQuickPick with canPickMany option
+      const selected = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        placeholder: 'Select files to add to prompt',
+        matchOnDescription: true,
+        matchOnDetail: true,
+        title: 'Select Files to Add to OpenCode'
+      });
+
+      if (!selected || selected.length === 0) {
+        return; // User cancelled
+      }
+
+      const connected = await ensureConnected();
+      if (!connected || !openCodeClient) {
+        const msg = lastAutoSpawnError
+          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+        await vscode.window.showErrorMessage(msg);
+        return;
+      }
+
+      try {
+        const port = openCodeClient.getPort();
+        const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+        outputChannel?.info(`[addMultipleFiles] Sending to port ${port}, cwd: ${workspaceDir}`);
+
+        for (const item of selected) {
+          // Build relative path from description + label
+          const relativePath = (item.description || '') + item.label;
+          const ref = `@${relativePath}`;
+          outputChannel?.debug(`[addMultipleFiles] Sending: "${ref}"`);
+          await openCodeClient.appendPrompt(ref);
+        }
+
+        outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
+        showTransientNotification(`Sent ${selected.length} files to OpenCode`);
+      } catch (err) {
+        await vscode.window.showErrorMessage(`Failed to send references: ${(err as Error).message}`);
       }
     }
   );
-const addMultipleFilesCommand = vscode.commands.registerCommand(
-  'opencodeConnector.addMultipleFiles',
-  async () => {
-    // Get all tabs from all tab groups
-    const allTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
 
-    // Filter to only text editor tabs (TabInputText)
-    const textEditorTabs = allTabs.filter(
-      (tab): tab is vscode.Tab => tab.input instanceof vscode.TabInputText
-    );
+  // Also register with opencode.* prefix for compatibility
 
-    // Build QuickPick items - add picked: true for checkbox state
-    const items: vscode.QuickPickItem[] = textEditorTabs.map((tab) => {
-      const input = tab.input as vscode.TabInputText;
-      const uri = input.uri;
-      const fileName = vscode.workspace.asRelativePath(uri, false);
-      const fullPath = uri.fsPath;
-
-      // Extract directory for description (relative path without filename)
-      const dirMatch = fileName.match(/^(.+?)[/\\][^/\\]+$/);
-      const description = dirMatch ? dirMatch[1] + '/' : '';
-
-      return {
-        label: path.basename(fileName),
-        description: description,
-        detail: fullPath,
-        picked: true // Pre-select all for checkbox state
-      };
-    });
-
-    // Create and configure QuickPick
-    const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem>();
-    quickPick.canPickMany = true;
-    quickPick.items = items;
-    quickPick.selectedItems = [...items];
-    quickPick.placeholder = 'Select files to add to prompt';
-    quickPick.matchOnDescription = true;
-    quickPick.matchOnDetail = true;
-    quickPick.title = 'Select Files to Add to OpenCode';
-
-    // Single toggle button that changes based on selection state
-    const toggleButton: vscode.QuickInputButton = {
-      iconPath: new vscode.ThemeIcon('check'),
-      tooltip: 'Unselect All'
-    };
-    quickPick.buttons = [toggleButton];
-
-    // Update button state when selection changes
-    quickPick.onDidChangeSelection((selection) => {
-      if (selection.length === items.length) {
-        // All selected - show unselect all
-        toggleButton.iconPath = new vscode.ThemeIcon('circle-slash');
-        toggleButton.tooltip = 'Unselect All';
-      } else if (selection.length === 0) {
-        // Nothing selected - show select all
-        toggleButton.iconPath = new vscode.ThemeIcon('check');
-        toggleButton.tooltip = 'Select All';
-      } else {
-        // Some selected - show select all
-        toggleButton.iconPath = new vscode.ThemeIcon('check');
-        toggleButton.tooltip = 'Select All';
-      }
-    });
-
-    // Handle button click - toggle all/none
-    quickPick.onDidTriggerButton(async (button) => {
-      if (button === toggleButton) {
-        const currentSelection = quickPick.selectedItems;
-        if (currentSelection.length === items.length) {
-          // All selected - unselect all
-          quickPick.selectedItems = [];
-        } else {
-          // Not all selected - select all
-          quickPick.selectedItems = [...items];
-        }
-      }
-    });
-
-    // Handle selection
-
-    // Handle selection
-
-    quickPick.placeholder = 'Select files to add to prompt';
-
-    // Handle selection
-    quickPick.onDidAccept(async () => {
-      const selected = quickPick.selectedItems;
-      if (selected.length === 0) {
-        await vscode.window.showWarningMessage('No files selected');
-        return;
-      }
-
-      const connected = await ensureConnected();
-      if (!connected || !openCodeClient) {
-        const msg = lastAutoSpawnError
-          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
-          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
-        await vscode.window.showErrorMessage(msg);
-        quickPick.dispose();
-        return;
-      }
-
-      try {
-        const port = openCodeClient.getPort();
-        const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
-        outputChannel?.info(`[addMultipleFiles] Sending to port ${port}, cwd: ${workspaceDir}`);
-
-        for (const item of selected) {
-          // Build relative path from description + label
-          const relativePath = (item.description || '') + item.label;
-          const ref = `@${relativePath}`;
-          outputChannel?.debug(`[addMultipleFiles] Sending: "${ref}"`);
-          await openCodeClient.appendPrompt(ref);
-        }
-
-        outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
-        showTransientNotification(`Sent ${selected.length} files to OpenCode`);
-      } catch (err) {
-        await vscode.window.showErrorMessage(`Failed to send references: ${(err as Error).message}`);
-      }
-
-      quickPick.dispose();
-    });
-
-    await quickPick.show();
-  }
-);
-
-const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
-  'opencode.addMultipleFiles',
-  async () => {
-    // Get all tabs from all tab groups
-    const allTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
-
-    // Filter to only text editor tabs (TabInputText)
-    const textEditorTabs = allTabs.filter(
-      (tab): tab is vscode.Tab => tab.input instanceof vscode.TabInputText
-    );
-
-    // Build QuickPick items
-    const items: vscode.QuickPickItem[] = textEditorTabs.map((tab) => {
-      const input = tab.input as vscode.TabInputText;
-      const uri = input.uri;
-      const fileName = vscode.workspace.asRelativePath(uri, false);
-      const fullPath = uri.fsPath;
-
-      // Extract directory for description (relative path without filename)
-      const dirMatch = fileName.match(/^(.+?)[/\\][^/\\]+$/);
-      const description = dirMatch ? dirMatch[1] + '/' : '';
-
-      return {
-        label: path.basename(fileName),
-        description: description,
-        detail: fullPath,
-      };
-    });
-
-    // Create and configure QuickPick
-    const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem>();
-    quickPick.canPickMany = true;
-    quickPick.items = items;
-    quickPick.placeholder = 'Select files to add to prompt';
-    quickPick.matchOnDescription = true;
-    quickPick.matchOnDetail = true;
-    quickPick.title = 'Select Files to Add to OpenCode';
-
-    // Add Select All / Unselect All buttons
-    const selectAllButton: vscode.QuickInputButton = {
-      iconPath: new vscode.ThemeIcon('check'),
-      tooltip: 'Select All'
-    };
-    const unselectAllButton: vscode.QuickInputButton = {
-      iconPath: new vscode.ThemeIcon('circle-slash'),
-      tooltip: 'Unselect All'
-    };
-    quickPick.buttons = [selectAllButton, unselectAllButton];
-
-    // Handle button clicks
-    quickPick.onDidTriggerButton(async (button) => {
-      if (button === selectAllButton) {
-        quickPick.selectedItems = [...items];
-      } else if (button === unselectAllButton) {
-        quickPick.selectedItems = [];
-      }
-    });
-
-    // Handle selection
-
-    quickPick.placeholder = 'Select files to add to prompt';
-
-    // Handle selection
-    quickPick.onDidAccept(async () => {
-      const selected = quickPick.selectedItems;
-      if (selected.length === 0) {
-        await vscode.window.showWarningMessage('No files selected');
-        return;
-      }
-
-      const connected = await ensureConnected();
-      if (!connected || !openCodeClient) {
-        const msg = lastAutoSpawnError
-          ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
-          : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
-        await vscode.window.showErrorMessage(msg);
-        quickPick.dispose();
-        return;
-      }
-
-      try {
-        const port = openCodeClient.getPort();
-        const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
-        outputChannel?.info(`[addMultipleFiles] Sending to port ${port}, cwd: ${workspaceDir}`);
-
-        for (const item of selected) {
-          // Build relative path from description + label
-          const relativePath = (item.description || '') + item.label;
-          const ref = `@${relativePath}`;
-          outputChannel?.debug(`[addMultipleFiles] Sending: "${ref}"`);
-          await openCodeClient.appendPrompt(ref);
-        }
-
-        outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
-        showTransientNotification(`Sent ${selected.length} files to OpenCode`);
-      } catch (err) {
-        await vscode.window.showErrorMessage(`Failed to send references: ${(err as Error).message}`);
-      }
-
-      quickPick.dispose();
-    });
-
-    await quickPick.show();
-  }
-);
   // Explain and Fix code action command
   const explainAndFixCommand = vscode.commands.registerCommand(
     'opencodeConnector.explainAndFix',
@@ -896,10 +822,10 @@ const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
     workspaceCommand,
     opencodeCheckInstanceCommand,
     opencodeShowWorkspaceCommand,
-    addFileCommand,
     opencodeAddFileCommand,
     addMultipleFilesCommand,
     opencodeAddMultipleFilesCommand,
+
     explainAndFixCommand,
     opencodeExplainAndFixCommand
   );
