@@ -598,6 +598,7 @@ function registerCommands(): void {
           ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
           : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
         await vscode.window.showErrorMessage(msg);
+        return;
       }
 
       try {
@@ -616,7 +617,11 @@ function registerCommands(): void {
         await openCodeClient.appendPrompt(refs);
 
         outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
-      } catch {}
+      } catch (err) {
+        await vscode.window.showErrorMessage(
+          `Failed to send references: ${(err as Error).message}`
+        );
+      }
     }
   );
 
@@ -675,6 +680,7 @@ function registerCommands(): void {
           ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
           : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
         await vscode.window.showErrorMessage(msg);
+        return;
       }
 
       try {
