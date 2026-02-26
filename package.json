@@ -25,15 +25,19 @@
     "commands": [
       {
         "command": "opencodeConnector.addToPrompt",
-        "title": "OpenCodeConnector: Add to Prompt"
+        "title": "OpenCode: Add to Prompt"
       },
       {
-        "command": "opencodeConnector.explainAndFix",
-        "title": "Explain and Fix (OpenCode)"
+        "command": "opencodeConnector.addMultipleFiles",
+        "title": "OpenCode: Select Files to Add"
       },
       {
-        "command": "opencode.explainAndFix",
-        "title": "Explain and Fix (OpenCode)"
+        "command": "opencodeConnector.checkInstance",
+        "title": "OpenCode: Check Instance"
+      },
+      {
+        "command": "opencodeConnector.showWorkspace",
+        "title": "OpenCode: Show Workspace"
       }
     ],
     "keybindings": [
