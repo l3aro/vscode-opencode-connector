@@ -14,6 +14,7 @@ import { ContextManager } from './context/contextManager';
 import { InstanceManager } from './instance/instanceManager';
 import { OpenCodeCodeActionProvider } from './providers/codeActionProvider';
 import { OpenCodeGutterActionProvider } from './providers/gutterActionProvider';
+import { StatusBarManager } from './statusBar';
 import { WorkspaceUtils } from './utils/workspace';
 
 import * as vscode from 'vscode';
@@ -27,6 +28,7 @@ let contextManager: ContextManager | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let gutterActionProvider: OpenCodeGutterActionProvider | undefined;
+let statusBarManager: StatusBarManager | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 
 /**
@@ -93,7 +95,10 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     statusBarItem.tooltip = 'Click to add active file to OpenCode prompt';
     statusBarItem.text = '$(go-to-file) OpenCode';
     statusBarItem.show();
-    extensionContext?.subscriptions.push(statusBarItem);
+
+    // Initialize status bar manager for connection status
+    statusBarManager = StatusBarManager.getInstance();
+    statusBarManager.initialize(context);
 
     // Register extension commands
     registerCommands();
@@ -129,9 +134,15 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     registerWorkspaceHandlers();
 
     // Eagerly discover and connect in background so first command is instant
-    connectionService.discoverAndConnect().catch(() => {
-      // Silently ignore — ensureConnected() will retry on-demand
-    });
+    connectionService
+      .discoverAndConnect()
+      .then(connected => {
+        statusBarManager?.updateConnectionStatus(connected);
+      })
+      .catch(() => {
+        // Silently ignore — ensureConnected() will retry on-demand
+        statusBarManager?.updateConnectionStatus(false);
+      });
 
     outputChannel?.info(
       'OpenCode Connector fully initialized' +
