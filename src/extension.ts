@@ -135,13 +135,13 @@ function registerCommands(): void {
   // Check instance status command
   const statusCommand = vscode.commands.registerCommand(
     'opencodeConnector.checkInstance',
-    async () => handleCheckInstance(connectionService!, outputChannel!)
+    async () => handleCheckInstance(connectionService!)
   );
 
   // Show workspace info command
   const workspaceCommand = vscode.commands.registerCommand(
     'opencodeConnector.showWorkspace',
-    async () => handleShowWorkspace(connectionService!, outputChannel!)
+    async () => handleShowWorkspace()
   );
 
   // Add file reference to OpenCode prompt
@@ -156,13 +156,12 @@ function registerCommands(): void {
     async () => handleAddMultipleFiles(connectionService!, outputChannel!)
   );
 
-
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
-    addMultipleFilesCommand,
+    addMultipleFilesCommand
   );
 }
 

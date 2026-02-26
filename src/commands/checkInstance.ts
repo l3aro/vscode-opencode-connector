@@ -2,10 +2,7 @@ import { ConnectionService } from '../connection/connectionService';
 
 import * as vscode from 'vscode';
 
-export async function handleCheckInstance(
-  connectionService: ConnectionService,
-  _outputChannel: vscode.LogOutputChannel
-): Promise<void> {
+export async function handleCheckInstance(connectionService: ConnectionService): Promise<void> {
   const configManager = connectionService.getConfigManager();
   const port = configManager?.getPort() || 4096;
   const result = await connectionService.getRunningInstance(port);
