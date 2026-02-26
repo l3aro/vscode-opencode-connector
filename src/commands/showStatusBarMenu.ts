@@ -1,9 +1,10 @@
-import * as vscode from 'vscode';
 import { ConnectionService } from '../connection/connectionService';
-import { handleAddToPrompt } from './addToPrompt';
 import { handleAddMultipleFiles } from './addMultipleFiles';
+import { handleAddToPrompt } from './addToPrompt';
 import { handleCheckInstance } from './checkInstance';
 import { handleShowWorkspace } from './showWorkspace';
+
+import * as vscode from 'vscode';
 
 /**
  * Show a QuickPick menu with available OpenCode commands.
