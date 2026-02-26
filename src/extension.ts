@@ -6,7 +6,6 @@ import {
   handleAddMultipleFiles,
   handleAddToPrompt,
   handleCheckInstance,
-  handleExplainAndFix,
   handleShowWorkspace,
 } from './commands';
 import { ConfigManager } from './config';
@@ -157,12 +156,6 @@ function registerCommands(): void {
     async () => handleAddMultipleFiles(connectionService!, outputChannel!)
   );
 
-  // Explain and Fix code action command
-  const explainAndFixCommand = vscode.commands.registerCommand(
-    'opencodeConnector.explainAndFix',
-    async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) =>
-      handleExplainAndFix(connectionService!, outputChannel!, diagnostic, uri)
-  );
 
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions.push(
@@ -170,7 +163,6 @@ function registerCommands(): void {
     workspaceCommand,
     addFileCommand,
     addMultipleFilesCommand,
-    explainAndFixCommand
   );
 }
 
