@@ -1,121 +1,166 @@
-# PROJECT KNOWLEDGE BASE
+# AGENTS.md - Agentic Coding Guidelines
 
-**Generated:** 2026-02-13
-**Commit:** 5125838
-**Branch:** main
+This file provides guidelines and commands for agentic coding agents operating in this repository.
 
-## OVERVIEW
+## Project Overview
 
-VSCode extension that bridges VS Code with the OpenCode AI assistant. Discovers/spawns local OpenCode server instances, sends file references to the AI prompt, and provides "Explain and Fix" code actions for diagnostics. TypeScript + VSCode Extension API, built with esbuild.
+This is a VS Code extension that integrates OpenCode AI assistant with VS Code. It's a TypeScript project using VS Code extension APIs.
 
-## STRUCTURE
+---
 
-```
-opencode-connector/
-├── src/
-│   ├── extension.ts         # Entry point: activate/deactivate, command registration, connection orchestration
-│   ├── config.ts            # Singleton ConfigManager for vscode settings (port, binaryPath, severityLevels)
-│   ├── types.ts             # All shared interfaces (EditorState, API responses, SSE, VCS, etc.)
-│   ├── api/
-│   │   ├── openCodeClient.ts  # Axios HTTP client with retry/backoff for OpenCode API
-│   │   └── errors.ts          # Error hierarchy: Unavailable, Timeout, ApiError, ServerError, etc.
-│   ├── context/
-│   │   └── contextManager.ts  # Subscribes to VSCode events, debounces editor state collection
-│   ├── instance/
-│   │   └── instanceManager.ts # Platform-aware process discovery (tasklist/netstat on Win, pgrep/lsof on Unix)
-│   ├── providers/
-│   │   └── codeActionProvider.ts # "Explain and Fix" lightbulb actions for diagnostics
-│   └── utils/
-│       ├── workspace.ts       # Multi-root workspace detection, path normalization, hashing
-│       ├── debounce.ts        # Debounce utilities (trailing, leading, with options)
-│       └── promptFormatter.ts # Formats diagnostic info into OpenCode prompt strings
-├── test/                    # Mirrors src/ structure
-│   ├── api/                 # Unit tests for OpenCodeClient
-│   ├── context/             # Unit tests for ContextManager
-│   ├── instance/            # Unit tests for InstanceManager + port scanner
-│   ├── providers/           # Unit tests for CodeActionProvider
-│   ├── utils/               # Unit tests for workspace/debounce/promptFormatter
-│   ├── suite/               # Mocha integration tests (VSCode extension host)
-│   └── runTest.ts           # Integration test launcher
-├── __mocks__/vscode.ts      # VSCode API mock for Vitest unit tests
-├── esbuild.js               # Build script: bundles extension + test runner
-├── temp/                    # Reference: cloned opencode repo (NOT project code)
-└── out/                     # Build output (gitignored)
-```
+## Commands
 
-## WHERE TO LOOK
+### Build & Development
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add new API endpoint | `src/api/openCodeClient.ts` | Follow existing pattern: typed response, validation, error transform |
-| Add new VSCode command | `src/extension.ts` → `registerCommands()` | Register under both `opencodeConnector.*` and `opencode.*` prefixes |
-| Change connection behavior | `src/extension.ts` → `ensureConnected()` | 4-step cascade: current client → discovery → auto-spawn → fallback port |
-| Fix process detection | `src/instance/instanceManager.ts` | Platform branches: `scanProcessesWindows()` vs `scanProcessesUnix()` |
-| Add new config option | `src/config.ts` + `package.json` contributes.configuration | Singleton, read via `vscode.workspace.getConfiguration('opencode')` |
-| Add new type/interface | `src/types.ts` | All domain types live here |
-| Workspace path logic | `src/utils/workspace.ts` | Handles multi-root, URI↔fsPath |
-| Add new code action | `src/providers/codeActionProvider.ts` | Implements `vscode.CodeActionProvider`; uses `promptFormatter` for prompt text |
-| Format diagnostic prompts | `src/utils/promptFormatter.ts` | Owns its own `DiagnosticInfo`/`UriInfo` interfaces (testable without vscode) |
+| Command | Description |
+|---------|-------------|
+| `npm run compile` | Compile TypeScript to JavaScript |
+| `npm run watch` | Watch mode - recompile on file changes |
+| `npm run pack` | Package extension as .vsix file |
 
-## CODE MAP
+### Testing
 
-| Symbol | Type | Location | Role |
-|--------|------|----------|------|
-| `activate` | function | extension.ts:210 | Extension entry — wires all managers, registers commands/providers |
-| `deactivate` | function | extension.ts:571 | Cleanup in reverse init order |
-| `ensureConnected` | function | extension.ts:97 | Connection cascade: test → discover → spawn → fallback |
-| `discoverAndConnect` | function | extension.ts:38 | Scans processes, matches workspace dir via `/path` endpoint |
-| `OpenCodeClient` | class | api/openCodeClient.ts:63 | HTTP client with axios-retry, exponential backoff, error transform |
-| `OpenCodeError` | abstract class | api/errors.ts:6 | Base error — all API errors extend this with string `code` field |
-| `ConfigManager` | class | config.ts:7 | Singleton — wraps `vscode.workspace.getConfiguration` |
-| `InstanceManager` | class | instance/instanceManager.ts:89 | Singleton — process scan, port check, terminal spawn |
-| `PlatformUtils` | const object | instance/instanceManager.ts:40 | OS detection, shell prefix helpers |
-| `ContextManager` | class | context/contextManager.ts:57 | Event subscriber — debounced editor state aggregation |
-| `OpenCodeCodeActionProvider` | class | providers/codeActionProvider.ts:24 | "Explain and Fix" lightbulb code actions |
-| `WorkspaceUtils` | const object | utils/workspace.ts:41 | Static utility — workspace detection, path ops |
-| `formatExplainAndFixPrompt` | function | utils/promptFormatter.ts:40 | Builds `@file#Lline` prompt string from diagnostic info |
+| Command | Description |
+|---------|-------------|
+| `npm run test` | Run all tests (unit + integration) |
+| `npm run test:unit` | Run unit tests only (vitest) |
+| `npm run test:integration` | Run integration tests only |
 
-## CONVENTIONS
-
-- **Singletons**: `ConfigManager` and `InstanceManager` use `getInstance()` / `resetInstance()` pattern
-- **Imports**: Prettier sorts with `@trivago/prettier-plugin-sort-imports` — local relative (`./`), then parent (`../`), then packages
-- **Config defaults**: Each module defines `DEFAULT_CONFIG` as `Required<ConfigInterface>`, merged with `??` in constructor
-- **Error hierarchy**: All API errors extend `OpenCodeError` (abstract) base class with string `code` field
-- **Commands**: Registered under BOTH `opencodeConnector.*` and `opencode.*` prefixes (dual registration)
-- **Platform branching**: Windows uses `cmd /c` + `tasklist`/`netstat`; Unix uses `sh -c` + `pgrep`/`lsof`
-- **Validation**: API responses are validated inline (type guard checks on response fields)
-- **Testable interfaces**: `promptFormatter.ts` defines its own `DiagnosticInfo`/`UriInfo` instead of depending on `vscode` — enables unit testing without extension host
-- **Default exports**: Each module has a `export default` at the bottom (class instance or object), alongside named exports
-
-## ANTI-PATTERNS (THIS PROJECT)
-
-- Do NOT add `index.ts` barrel exports — modules are imported directly by file path
-- Do NOT use PowerShell for Windows process scanning — use native `cmd /c tasklist`/`netstat` (performance: 200ms vs 2s)
-- Do NOT send context to OpenCode on every editor event — always debounce (min 300ms)
-- Terminal spawn: Do NOT use `PlatformUtils.getCommandWithExtension()` for terminal commands — the integrated terminal resolves PATH naturally
-- The 2000ms settling delay after server spawn in `ensureConnected()` is intentional — the HTTP server responds before TUI is ready
-- Do NOT use `testConnection()` via the global retry-enabled client for quick connectivity checks — `testConnection()` bypasses the retry interceptor intentionally
-
-## COMMANDS
-
+**Running a single test file:**
 ```bash
-npm run compile          # esbuild: bundles extension + tests to out/
-npm run watch            # esbuild: watch mode
-npm run test:unit        # vitest run
-npm run test:integration # launches VSCode test host
-npm run test             # both unit + integration
-npm run lint             # eslint on src/
-npm run format           # prettier --write
-npm run format:check     # prettier --check (CI)
+# Using vitest directly for unit tests
+npx vitest run test/utils/debounce.test.ts
+
+# Or run with pattern matching
+npx vitest run --filter "debounce"
 ```
 
-## NOTES
+### Linting & Formatting
 
-- `temp/` contains a cloned opencode repo used as reference — it is NOT part of this extension's source
-- `.vscode-test/` is auto-downloaded by `@vscode/test-electron` for integration tests — do not manually modify
-- Default OpenCode port is 4096 (range scanned: 4096-5096 for auto-spawn)
-- `activate()` signature is non-standard: takes `(extensionUri, context)` instead of just `(context)` — the build wires this
-- Test mocking: `__mocks__/vscode.ts` stubs the entire VSCode API for Vitest (node environment, no extension host)
-- Strict TypeScript: `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns` — all enabled
-- No CI/CD config present — no `.github/workflows` or `Makefile`
-- Engine compatibility: targets both VSCode (`^1.94.0`) and Windsurf (`^1.0.0`)
+| Command | Description |
+|---------|-------------|
+| `npm run lint` | Run ESLint on src directory |
+| `npm run format` | Format all files with Prettier |
+| `npm run format:check` | Check formatting without modifying |
+
+---
+
+## Code Style Guidelines
+
+### TypeScript Configuration
+
+- **Strict mode**: Enabled - no implicit any, no implicit returns
+- **Module system**: CommonJS
+- **Target**: ES2020
+- **Unused variables**: Not allowed (`noUnusedLocals`, `noUnusedParameters`)
+
+### Formatting (Prettier)
+
+| Setting | Value |
+|---------|-------|
+| Semi-colons | Yes |
+| Tab width | 2 |
+| Print width | 100 |
+| Quotes | Single quotes |
+| Trailing commas | ES5 style |
+| Arrow parens | Avoid when possible |
+
+### Import Sorting
+
+The project uses `@trivago/prettier-plugin-sort-imports` with this order:
+1. Relative imports (`./`, `../`)
+2. External packages (`^[a-z-]+$`)
+
+### Naming Conventions
+
+| Type | Convention | Example |
+|------|------------|---------|
+| Classes | PascalCase | `OpenCodeClient`, `ConfigManager` |
+| Interfaces/Types | PascalCase | `OpenCodeClientConfig`, `HealthResponse` |
+| Functions | camelCase | `handleAddToPrompt`, `getActiveFileRef` |
+| Variables | camelCase | `connectionService`, `outputChannel` |
+| Constants | PascalCase or UPPER_SNAKE | `DEFAULT_CONFIG` |
+| Files (classes) | PascalCase | `connectionService.ts` |
+| Files (utilities) | camelCase | `debounce.ts`, `workspace.ts` |
+
+### Code Organization
+
+```
+src/
+├── api/           # HTTP clients, API types
+├── commands/      # VS Code command handlers
+├── config.ts      # Configuration management
+├── connection/    # Connection service
+├── context/       # Context tracking
+├── instance/     # Instance management
+├── providers/    # VS Code providers (CodeAction, Gutter)
+├── statusBar.ts  # Status bar management
+├── types.ts      # Shared types
+└── utils/        # Utility functions
+```
+
+### JSDoc Comments
+
+Document all exported functions and classes with JSDoc:
+```typescript
+/**
+ * Brief description of what the function does.
+ * @param paramName - Description of parameter
+ * @returns Description of return value
+ */
+export async function myFunction(paramName: string): Promise<void> {
+  // ...
+}
+```
+
+### Error Handling
+
+- Use custom error classes extending `Error` or `OpenCodeError`
+- Always catch and handle async errors with try/catch
+- Use type-safe error casting: `(err as Error).message`
+- Log errors to output channel before showing user messages
+
+**Good pattern:**
+```typescript
+try {
+  const result = await someAsyncOperation();
+  outputChannel.info('Operation succeeded');
+} catch (err) {
+  outputChannel.error(`Operation failed: ${(err as Error).message}`);
+  await vscode.window.showErrorMessage(`Failed: ${(err as Error).message}`);
+}
+```
+
+### VS Code Extension Patterns
+
+- Register commands with `vscode.commands.registerCommand`
+- Subscribe to disposables via `extensionContext.subscriptions.push()`
+- Use `LogOutputChannel` for user-accessible logging (View → Output)
+- Return early with user messages for validation failures
+- Use `async/await` for all VS Code APIs
+
+### Type Annotations
+
+- Always use explicit return types on exported functions
+- Use `interface` for object shapes, `type` for unions/aliases
+- Prefer `type` over `interface` for simple configs
+- Use `readonly` for immutable arrays
+
+### Testing Patterns
+
+- Unit tests use Vitest with `describe`, `it`, `expect`
+- Integration tests use VS Code test runner (`@vscode/test-electron`)
+- Test files co-located in `test/` directory matching `src/` structure
+- Mock VS Code APIs where needed
+
+---
+
+## Pre-Commit Checklist
+
+Before submitting any changes:
+
+1. [ ] Run `npm run lint` - fix any ESLint errors
+2. [ ] Run `npm run format` - ensure consistent formatting
+3. [ ] Run `npm run test:unit` - unit tests pass
+4. [ ] Run `npm run compile` - TypeScript compiles without errors
+5. [ ] Check for any `// TODO:` comments that should be addressed
