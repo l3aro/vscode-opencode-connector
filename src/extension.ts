@@ -27,7 +27,6 @@ let configManager: ConfigManager | undefined;
 let connectionService: ConnectionService | undefined;
 let contextManager: ContextManager | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
-let statusBarItem: vscode.StatusBarItem | undefined;
 let gutterActionProvider: OpenCodeGutterActionProvider | undefined;
 let statusBarManager: StatusBarManager | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
@@ -82,18 +81,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     contextManager.initialize(() => {
       // State tracked internally - sent to OpenCode via explicit commands
     });
-
-    // Create status bar item for transient notifications
-    statusBarItem = vscode.window.createStatusBarItem(
-      'opencode-connector',
-      vscode.StatusBarAlignment.Right,
-      100
-    );
-    statusBarItem.name = 'OpenCode Connector';
-    statusBarItem.command = 'opencodeConnector.addToPrompt';
-    statusBarItem.tooltip = 'Click to add active file to OpenCode prompt';
-    statusBarItem.text = '$(go-to-file) OpenCode';
-    statusBarItem.show();
 
     // Initialize status bar manager for connection status
     statusBarManager = StatusBarManager.getInstance();
@@ -205,7 +192,7 @@ function registerCommands(): void {
  * Register workspace change handlers
  */
 function registerWorkspaceHandlers(): void {
-  // registerWorkspaceHandlers(): Handle workspace folder changes
+  // Handle workspace folder changes
   const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(() => {
     const workspaceInfo = WorkspaceUtils.detectWorkspace();
     outputChannel?.info(
