@@ -7,6 +7,7 @@ import {
   handleAddToPrompt,
   handleCheckInstance,
   handleShowWorkspace,
+  showStatusBarMenu,
 } from './commands';
 import { ConfigManager } from './config';
 import { ConnectionService, isRemoteSession } from './connection/connectionService';
@@ -70,8 +71,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
 
     // Initialize context manager
-
-    // Initialize context manager
     contextManager = new ContextManager({
       debounceMs: 500,
       trackDiagnostics: true,
@@ -130,7 +129,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     );
     extensionContext?.subscriptions?.push(gutterClickCommand);
 
-    // Register workspace change handler
+    // Register workspace change handlers
     registerWorkspaceHandlers();
 
     // Eagerly discover and connect in background so first command is instant
@@ -186,21 +185,27 @@ function registerCommands(): void {
     async () => handleAddMultipleFiles(connectionService!, outputChannel!)
   );
 
+  // Status bar menu command
+  const statusBarMenuCommand = vscode.commands.registerCommand(
+    'opencodeConnector.showStatusBarMenu',
+    async () => showStatusBarMenu(connectionService!, outputChannel!)
+  );
+
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
-    addMultipleFilesCommand
+    addMultipleFilesCommand,
+    statusBarMenuCommand
   );
-
 }
 
 /**
  * Register workspace change handlers
  */
 function registerWorkspaceHandlers(): void {
-  // Handle workspace folder changes
+  // registerWorkspaceHandlers(): Handle workspace folder changes
   const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(() => {
     const workspaceInfo = WorkspaceUtils.detectWorkspace();
     outputChannel?.info(

@@ -38,6 +38,10 @@
       {
         "command": "opencodeConnector.showWorkspace",
         "title": "OpenCode: Show Workspace"
+      },
+      {
+        "command": "opencodeConnector.showStatusBarMenu",
+        "title": "OpenCode: Show Menu"
       }
     ],
     "keybindings": [
