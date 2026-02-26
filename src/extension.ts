@@ -13,6 +13,7 @@ import { ConnectionService, isRemoteSession } from './connection/connectionServi
 import { ContextManager } from './context/contextManager';
 import { InstanceManager } from './instance/instanceManager';
 import { OpenCodeCodeActionProvider } from './providers/codeActionProvider';
+import { OpenCodeGutterActionProvider } from './providers/gutterActionProvider';
 import { WorkspaceUtils } from './utils/workspace';
 
 import * as vscode from 'vscode';
@@ -25,6 +26,7 @@ let connectionService: ConnectionService | undefined;
 let contextManager: ContextManager | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
+let gutterActionProvider: OpenCodeGutterActionProvider | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 
 /**
@@ -105,6 +107,23 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       }
     );
     extensionContext?.subscriptions.push(codeActionProvider);
+
+    // Initialize and register Gutter Action Provider
+    gutterActionProvider = new OpenCodeGutterActionProvider();
+    extensionContext?.subscriptions.push(gutterActionProvider);
+
+    // Register gutter click handler command
+    const gutterClickCommand = vscode.commands.registerCommand(
+      'opencodeConnector.gutterClick',
+      async (line: number) => {
+        if (gutterActionProvider) {
+          await gutterActionProvider.handleGutterClick(line, (cmd, ...args) => {
+            vscode.commands.executeCommand(cmd, ...args);
+          });
+        }
+      }
+    );
+    extensionContext?.subscriptions.push(gutterClickCommand);
 
     // Register workspace change handler
     registerWorkspaceHandlers();

@@ -321,6 +321,32 @@ export class ConnectionService {
   async focusTerminal(): Promise<boolean> {
     return this.instanceManager.focusTerminal();
   }
+
+  /**
+   * Disconnect from the current OpenCode instance.
+    return this.instanceManager.focusTerminal();
+
+
+  /**
+   * Disconnect from the current OpenCode instance.
+   * Destroys the client and clears the connection state.
+   */
+  disconnect(): void {
+    if (this.client) {
+      this.client.destroy();
+      this.client = undefined;
+      this.connectedPort = undefined;
+      this.outputChannel?.info('OpenCode Connector: disconnected');
+    }
+  }
+
+  /**
+   * Check if currently connected to an OpenCode instance.
+   * @returns true if connected
+   */
+  isConnected(): boolean {
+    return this.client !== undefined;
+  }
 }
 
 /**
