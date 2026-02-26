@@ -646,15 +646,16 @@ function registerCommands(): void {
       try {
         const port = openCodeClient.getPort();
         const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
-        outputChannel?.info(`[addMultipleFiles] Sending to port ${port}, cwd: ${workspaceDir}`);
+        // Build all file references with spaces between them
+        const refs = selected
+          .map((item) => {
+            const relativePath = (item.description || '') + item.label;
+            return `@${relativePath}`;
+          })
+          .join(' ');
 
-        for (const item of selected) {
-          // Build relative path from description + label
-          const relativePath = (item.description || '') + item.label;
-          const ref = `@${relativePath}`;
-          outputChannel?.debug(`[addMultipleFiles] Sending: "${ref}"`);
-          await openCodeClient.appendPrompt(ref);
-        }
+        outputChannel?.debug(`[addMultipleFiles] Sending: "${refs}"`);
+        await openCodeClient.appendPrompt(refs);
 
         outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
         showTransientNotification(`Sent ${selected.length} files to OpenCode`);
@@ -724,15 +725,16 @@ function registerCommands(): void {
       try {
         const port = openCodeClient.getPort();
         const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
-        outputChannel?.info(`[addMultipleFiles] Sending to port ${port}, cwd: ${workspaceDir}`);
+        // Build all file references with spaces between them
+        const refs = selected
+          .map((item) => {
+            const relativePath = (item.description || '') + item.label;
+            return `@${relativePath}`;
+          })
+          .join(' ');
 
-        for (const item of selected) {
-          // Build relative path from description + label
-          const relativePath = (item.description || '') + item.label;
-          const ref = `@${relativePath}`;
-          outputChannel?.debug(`[addMultipleFiles] Sending: "${ref}"`);
-          await openCodeClient.appendPrompt(ref);
-        }
+        outputChannel?.debug(`[addMultipleFiles] Sending: "${refs}"`);
+        await openCodeClient.appendPrompt(refs);
 
         outputChannel?.debug(`[addMultipleFiles] Sent ${selected.length} files`);
         showTransientNotification(`Sent ${selected.length} files to OpenCode`);
