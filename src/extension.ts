@@ -7,12 +7,15 @@ import {
   handleAddToPrompt,
   handleCheckInstance,
   handleShowWorkspace,
+  showStatusBarMenu,
 } from './commands';
 import { ConfigManager } from './config';
 import { ConnectionService, isRemoteSession } from './connection/connectionService';
 import { ContextManager } from './context/contextManager';
 import { InstanceManager } from './instance/instanceManager';
 import { OpenCodeCodeActionProvider } from './providers/codeActionProvider';
+import { OpenCodeGutterActionProvider } from './providers/gutterActionProvider';
+import { StatusBarManager } from './statusBar';
 import { WorkspaceUtils } from './utils/workspace';
 
 import * as vscode from 'vscode';
@@ -24,7 +27,8 @@ let configManager: ConfigManager | undefined;
 let connectionService: ConnectionService | undefined;
 let contextManager: ContextManager | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
-let statusBarItem: vscode.StatusBarItem | undefined;
+let gutterActionProvider: OpenCodeGutterActionProvider | undefined;
+let statusBarManager: StatusBarManager | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 
 /**
@@ -38,8 +42,8 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
   // Create log output channel for user-accessible logging (View → Output → OpenCode Connector)
   try {
     outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
-    context.subscriptions.push(outputChannel);
-    outputChannel.info('OpenCode Connector extension is now active');
+    context?.subscriptions?.push(outputChannel);
+    outputChannel?.info('OpenCode Connector extension is now active');
   } catch (err) {
     // Fallback: use console if OutputChannel fails (e.g., early activation)
     console.error('Failed to create output channel:', err);
@@ -66,8 +70,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
 
     // Initialize context manager
-
-    // Initialize context manager
     contextManager = new ContextManager({
       debounceMs: 500,
       trackDiagnostics: true,
@@ -80,18 +82,15 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       // State tracked internally - sent to OpenCode via explicit commands
     });
 
-    // Create status bar item for transient notifications
-    statusBarItem = vscode.window.createStatusBarItem(
-      'opencode-connector',
-      vscode.StatusBarAlignment.Right,
-      100
-    );
-    statusBarItem.name = 'OpenCode Connector';
-    statusBarItem.command = 'opencodeConnector.addToPrompt';
-    statusBarItem.tooltip = 'Click to add active file to OpenCode prompt';
-    statusBarItem.text = '$(go-to-file) OpenCode';
-    statusBarItem.show();
-    extensionContext?.subscriptions.push(statusBarItem);
+    // Initialize status bar manager for connection status
+    statusBarManager = StatusBarManager.getInstance();
+    statusBarManager.initialize(context);
+
+    // Subscribe to connection state changes FIRST (before other init that might fail)
+    const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
+      statusBarManager?.updateConnectionStatus(event.connected);
+    });
+    extensionContext?.subscriptions?.push(connectionStateSub);
 
     // Register extension commands
     registerCommands();
@@ -104,15 +103,40 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
         providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
       }
     );
-    extensionContext?.subscriptions.push(codeActionProvider);
+    extensionContext?.subscriptions?.push(codeActionProvider);
 
-    // Register workspace change handler
+    // Initialize and register Gutter Action Provider
+    gutterActionProvider = new OpenCodeGutterActionProvider(extensionUri);
+    extensionContext?.subscriptions?.push(gutterActionProvider);
+
+    // Register gutter click handler command
+    const gutterClickCommand = vscode.commands.registerCommand(
+      'opencodeConnector.gutterClick',
+      async (line: number) => {
+        if (gutterActionProvider) {
+          await gutterActionProvider.handleGutterClick(line, (cmd, ...args) => {
+            vscode.commands.executeCommand(cmd, ...args);
+          });
+        }
+      }
+    );
+    extensionContext?.subscriptions?.push(gutterClickCommand);
+
+    // Register workspace change handlers
+
+    // Register workspace change handlers
     registerWorkspaceHandlers();
 
     // Eagerly discover and connect in background so first command is instant
-    connectionService.discoverAndConnect().catch(() => {
-      // Silently ignore — ensureConnected() will retry on-demand
-    });
+    connectionService
+      .discoverAndConnect()
+      .then(connected => {
+        statusBarManager?.updateConnectionStatus(connected);
+      })
+      .catch(() => {
+        // Silently ignore — ensureConnected() will retry on-demand
+        statusBarManager?.updateConnectionStatus(false);
+      });
 
     outputChannel?.info(
       'OpenCode Connector fully initialized' +
@@ -156,12 +180,19 @@ function registerCommands(): void {
     async () => handleAddMultipleFiles(connectionService!, outputChannel!)
   );
 
+  // Status bar menu command
+  const statusBarMenuCommand = vscode.commands.registerCommand(
+    'opencodeConnector.showStatusBarMenu',
+    async () => showStatusBarMenu(connectionService!, outputChannel!)
+  );
+
   // Push all subscriptions for cleanup
-  extensionContext?.subscriptions.push(
+  extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
-    addMultipleFilesCommand
+    addMultipleFilesCommand,
+    statusBarMenuCommand
   );
 }
 
@@ -184,7 +215,7 @@ function registerWorkspaceHandlers(): void {
     }
   });
 
-  extensionContext?.subscriptions.push(workspaceFoldersChange, configChange);
+  extensionContext?.subscriptions?.push(workspaceFoldersChange, configChange);
 }
 
 /**

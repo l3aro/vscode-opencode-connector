@@ -16,6 +16,14 @@ interface Logger {
 }
 
 /**
+ * Connection state change event
+ */
+export interface ConnectionStateEvent {
+  connected: boolean;
+  port?: number;
+}
+
+/**
  * Connection Service for OpenCode
  * Manages connection lifecycle: discovery, auto-spawn, and fallback
  */
@@ -27,6 +35,10 @@ export class ConnectionService {
   private configManager: ConfigManager;
   private instanceManager: InstanceManager;
   private outputChannel: Logger | undefined;
+
+  // Event emitter for connection state changes
+  private _onDidChangeConnectionState = new vscode.EventEmitter<ConnectionStateEvent>();
+  public readonly onDidChangeConnectionState = this._onDidChangeConnectionState.event;
 
   constructor(
     configManager: ConfigManager,
@@ -183,7 +195,8 @@ export class ConnectionService {
             const currentWorkspaceDir = workspaceFolders[0].uri.fsPath;
             const pathInfo = await this.client.getPath();
             if (pathsMatch(pathInfo.directory, currentWorkspaceDir)) {
-              return true; // Client is alive and serving correct workspace
+              this._onDidChangeConnectionState.fire({ connected: true, port: this.connectedPort });
+              return true;
             }
             // Client is alive but serving wrong workspace — destroy and re-discover
             this.client.destroy();
@@ -199,6 +212,7 @@ export class ConnectionService {
     // 2. Auto-discover from running processes
     const discovered = await this.discoverAndConnect();
     if (discovered) {
+      this._onDidChangeConnectionState.fire({ connected: true, port: this.connectedPort });
       return true;
     }
 
@@ -229,6 +243,7 @@ export class ConnectionService {
         this.outputChannel?.info(
           `OpenCode Connector: spawned and connected to instance on port ${port}`
         );
+        this._onDidChangeConnectionState.fire({ connected: true, port });
         return true;
       } else {
         this.lastAutoSpawnError = `Spawned OpenCode on port ${port} but it did not become ready within 30s. Check the "OpenCode" terminal for errors.`;
@@ -250,7 +265,11 @@ export class ConnectionService {
 
     // Test the fallback
     try {
-      return await this.client.testConnection();
+      const connected = await this.client.testConnection();
+      if (connected) {
+        this._onDidChangeConnectionState.fire({ connected: true, port });
+      }
+      return connected;
     } catch {
       return false;
     }
@@ -320,6 +339,32 @@ export class ConnectionService {
    */
   async focusTerminal(): Promise<boolean> {
     return this.instanceManager.focusTerminal();
+  }
+
+  /**
+   * Disconnect from the current OpenCode instance.
+   * Destroys the client and clears the connection state.
+   */
+  disconnect(): void {
+    if (this.client) {
+      this.client.destroy();
+      this.client = undefined;
+      this.connectedPort = undefined;
+      this.outputChannel?.info('OpenCode Connector: disconnected');
+      this._onDidChangeConnectionState.fire({ connected: false });
+    }
+  }
+
+  dispose(): void {
+    this._onDidChangeConnectionState.dispose();
+  }
+
+  /**
+   * Check if currently connected to an OpenCode instance.
+   * @returns true if connected
+   */
+  isConnected(): boolean {
+    return this.client !== undefined;
   }
 }
 
