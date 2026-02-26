@@ -617,10 +617,10 @@ const addMultipleFilesCommand = vscode.commands.registerCommand(
 
     // Create and configure QuickPick
     const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem>();
-    quickPick.items = items;
-    quickPick.selectedItems = [...items]; // Select all by default
-    quickPick.placeholder = 'Select files to add to prompt';
     quickPick.canPickMany = true;
+    quickPick.items = items;
+    quickPick.selectedItems = [...items];
+    quickPick.placeholder = 'Select files to add to prompt';
     quickPick.matchOnDescription = true;
     quickPick.matchOnDetail = true;
     quickPick.title = 'Select Files to Add to OpenCode';
@@ -744,9 +744,9 @@ const opencodeAddMultipleFilesCommand = vscode.commands.registerCommand(
 
     // Create and configure QuickPick
     const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem>();
+    quickPick.canPickMany = true;
     quickPick.items = items;
     quickPick.placeholder = 'Select files to add to prompt';
-    quickPick.canPickMany = true;
     quickPick.matchOnDescription = true;
     quickPick.matchOnDetail = true;
     quickPick.title = 'Select Files to Add to OpenCode';
