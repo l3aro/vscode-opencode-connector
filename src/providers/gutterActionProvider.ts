@@ -28,10 +28,10 @@ export class OpenCodeGutterActionProvider {
    * Create the gutter decoration type with lightbulb icon
    */
   private createDecorationType(): void {
-    // Build the gutter icon path if extensionUri is available
-    const gutterIconPath = this.extensionUri
-      ? vscode.Uri.joinPath(this.extensionUri, 'resources', 'icon.png')
-      : undefined;
+    let gutterIconPath: vscode.Uri | undefined;
+    if (this.extensionUri?.fsPath) {
+      gutterIconPath = vscode.Uri.joinPath(this.extensionUri, 'resources', 'icon.png');
+    }
 
     this.decorationType = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
