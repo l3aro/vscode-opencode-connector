@@ -91,7 +91,6 @@ src/
 ├── commands/      # VS Code command handlers
 ├── config.ts      # Configuration management
 ├── connection/    # Connection service
-├── context/       # Context tracking
 ├── instance/     # Instance management
 ├── providers/    # VS Code providers (CodeAction)
 ├── statusBar.ts  # Status bar management

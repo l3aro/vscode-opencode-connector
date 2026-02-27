@@ -12,7 +12,6 @@ import {
 } from './commands';
 import { ConfigManager } from './config';
 import { ConnectionService, isRemoteSession } from './connection/connectionService';
-import { ContextManager } from './context/contextManager';
 import { DefaultInstanceManager } from './instance/defaultInstanceManager';
 import { InstanceManager } from './instance/instanceManager';
 import { OpenCodeCodeActionProvider } from './providers/codeActionProvider';
@@ -26,7 +25,6 @@ import * as vscode from 'vscode';
  */
 let configManager: ConfigManager | undefined;
 let connectionService: ConnectionService | undefined;
-let contextManager: ContextManager | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
 let statusBarManager: StatusBarManager | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
@@ -68,19 +66,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
 
     // Initialize connection service
     connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
-
-    // Initialize context manager
-    contextManager = new ContextManager({
-      debounceMs: 500,
-      trackDiagnostics: true,
-      trackSelection: true,
-      trackDocuments: true,
-    });
-
-    // Wire context manager - state tracked internally, sent to OpenCode via explicit commands
-    contextManager.initialize(() => {
-      // State tracked internally - sent to OpenCode via explicit commands
-    });
 
     // Initialize status bar manager for connection status
     statusBarManager = StatusBarManager.getInstance();
@@ -215,11 +200,6 @@ export function deactivate(): void {
   outputChannel?.info('OpenCode Connector extension is now deactivated');
 
   // Cleanup in reverse order
-  if (contextManager) {
-    contextManager.dispose();
-    contextManager = undefined;
-  }
-
   if (connectionService) {
     const client = connectionService.getClient();
     if (client) {
