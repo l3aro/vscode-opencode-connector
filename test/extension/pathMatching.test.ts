@@ -250,37 +250,37 @@ describe('pathsMatch - parent/child directory matching', () => {
     expect(result).toBe(true);
   });
 
-  it('should match parent directory case-insensitively on Windows', () => {
-    if (process.platform !== 'win32') {
-      return; // Skip on non-Windows
+  it.skipIf(process.platform !== 'win32')(
+    'should match parent directory case-insensitively on Windows',
+    () => {
+      const result = pathsMatch('C:\\Users\\User\\Project', 'C:\\Users\\user\\project\\src');
+      expect(result).toBe(true);
     }
-    const result = pathsMatch('C:\\Users\\User\\Project', 'C:\\Users\\user\\project\\src');
-    expect(result).toBe(true);
-  });
+  );
 
-  it('should match child directory case-insensitively on Windows', () => {
-    if (process.platform !== 'win32') {
-      return; // Skip on non-Windows
+  it.skipIf(process.platform !== 'win32')(
+    'should match child directory case-insensitively on Windows',
+    () => {
+      const result = pathsMatch('C:\\Users\\User\\Project\\Src', 'C:\\Users\\user\\project');
+      expect(result).toBe(true);
     }
-    const result = pathsMatch('C:\\Users\\User\\Project\\Src', 'C:\\Users\\user\\project');
-    expect(result).toBe(true);
-  });
+  );
 
-  it('should match parent directory case-insensitively on macOS', () => {
-    if (process.platform !== 'darwin') {
-      return; // Skip on non-macOS
+  it.skipIf(process.platform !== 'darwin')(
+    'should match parent directory case-insensitively on macOS',
+    () => {
+      const result = pathsMatch('/Users/user/Project', '/Users/user/project/src');
+      expect(result).toBe(true);
     }
-    const result = pathsMatch('/Users/user/Project', '/Users/user/project/src');
-    expect(result).toBe(true);
-  });
+  );
 
-  it('should match child directory case-insensitively on macOS', () => {
-    if (process.platform !== 'darwin') {
-      return; // Skip on non-macOS
+  it.skipIf(process.platform !== 'darwin')(
+    'should match child directory case-insensitively on macOS',
+    () => {
+      const result = pathsMatch('/Users/user/Project/Src', '/Users/user/project');
+      expect(result).toBe(true);
     }
-    const result = pathsMatch('/Users/user/Project/Src', '/Users/user/project');
-    expect(result).toBe(true);
-  });
+  );
 
   it('should NOT match when paths have similar prefix but different separator boundaries', () => {
     // False positive: /project should NOT match /project-backup/src
