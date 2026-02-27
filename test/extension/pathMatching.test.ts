@@ -288,11 +288,15 @@ describe('pathsMatch - parent/child directory matching', () => {
     expect(result).toBe(false);
   });
 
-  it('should handle root directory edge case correctly', () => {
-    // Root directory: / should not match unrelated paths inappropriately
-    const result = pathsMatch('/', '/some/random/path');
-    expect(result).toBe(false);
-  });
+  it.skipIf(process.platform !== 'linux')(
+    'should handle root directory edge case correctly',
+    () => {
+      // On Linux, / is the actual root and should not match everything
+      // On Windows, path.resolve('/') becomes C:\ which IS a valid parent
+      const result = pathsMatch('/', '/some/random/path');
+      expect(result).toBe(false);
+    }
+  );
 
   it('should return false for empty paths', () => {
     const result1 = pathsMatch('', '/some/path');
