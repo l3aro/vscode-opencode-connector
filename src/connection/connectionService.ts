@@ -1,5 +1,6 @@
 import { OpenCodeClient } from '../api/openCodeClient';
 import { ConfigManager } from '../config';
+import { DefaultInstanceManager } from '../instance/defaultInstanceManager';
 import { InstanceManager } from '../instance/instanceManager';
 
 import * as path from 'path';
@@ -184,6 +185,56 @@ export class ConnectionService {
    * @returns true if connected
    */
   async ensureConnected(): Promise<boolean> {
+    // 0. Check for default port from previous session
+    const defaultPort = DefaultInstanceManager.getInstance().getDefaultPort();
+    if (defaultPort !== undefined) {
+      const isValid = await DefaultInstanceManager.getInstance().isValid();
+      if (isValid) {
+        // Check if it serves the current workspace
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+          const currentWorkspaceDir = workspaceFolders[0].uri.fsPath;
+          try {
+            const tempClient = new OpenCodeClient({
+              port: defaultPort,
+              timeout: 3000,
+              maxRetries: 0,
+            });
+            const pathInfo = await tempClient.getPath();
+            tempClient.destroy();
+
+            if (pathsMatch(pathInfo.directory, currentWorkspaceDir)) {
+              // Default port is valid and serves current workspace - connect directly
+              if (this.client) {
+                this.client.destroy();
+              }
+              this.client = new OpenCodeClient({ port: defaultPort });
+              this.connectedPort = defaultPort;
+
+              this.outputChannel?.info(`Using default instance on port ${defaultPort}`);
+              this._onDidChangeConnectionState.fire({ connected: true, port: defaultPort });
+              return true;
+            }
+            // Default port is valid but serves different workspace - clear and continue
+            this.outputChannel?.info(
+              `Default instance on port ${defaultPort} serves different workspace, clearing`
+            );
+            DefaultInstanceManager.getInstance().clearDefault();
+          } catch {
+            // Default port is valid but not responding to getPath - clear and continue
+            this.outputChannel?.info(
+              `Default instance on port ${defaultPort} not responding, clearing`
+            );
+            DefaultInstanceManager.getInstance().clearDefault();
+          }
+        }
+      } else {
+        // Default port is not valid (no instance running) - clear and continue
+        this.outputChannel?.info(`Default instance invalid, clearing`);
+        DefaultInstanceManager.getInstance().clearDefault();
+      }
+    }
+
     // 1. Check if current client is still alive AND serving the correct workspace
     if (this.client) {
       try {
@@ -338,7 +389,7 @@ export class ConnectionService {
    * @returns true if successful
    */
   async focusTerminal(): Promise<boolean> {
-    return this.instanceManager.focusTerminal();
+    return this.instanceManager.focusTerminal(this.connectedPort);
   }
 
   /**

@@ -4,3 +4,4 @@ export { handleAddToPrompt } from './addToPrompt';
 export { handleAddMultipleFiles } from './addMultipleFiles';
 export { handleExplainAndFix } from './explainAndFix';
 export { showStatusBarMenu } from './showStatusBarMenu';
+export { handleSelectDefaultInstance } from './selectDefaultInstance';

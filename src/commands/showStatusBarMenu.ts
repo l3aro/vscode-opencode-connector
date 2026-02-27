@@ -2,6 +2,7 @@ import { ConnectionService } from '../connection/connectionService';
 import { handleAddMultipleFiles } from './addMultipleFiles';
 import { handleAddToPrompt } from './addToPrompt';
 import { handleCheckInstance } from './checkInstance';
+import { handleSelectDefaultInstance } from './selectDefaultInstance';
 import { handleShowWorkspace } from './showWorkspace';
 
 import * as vscode from 'vscode';
@@ -30,6 +31,10 @@ export async function showStatusBarMenu(
       label: '$(folder-opened) Show Workspace',
       description: 'Display the current workspace information',
     },
+    {
+      label: '$(star) Select Default Instance',
+      description: 'Choose a default OpenCode instance for this workspace',
+    },
   ];
 
   const selected = await vscode.window.showQuickPick(items, {
@@ -53,6 +58,9 @@ export async function showStatusBarMenu(
       break;
     case '$(folder-opened) Show Workspace':
       await handleShowWorkspace();
+      break;
+    case '$(star) Select Default Instance':
+      await handleSelectDefaultInstance(connectionService, outputChannel);
       break;
   }
 }

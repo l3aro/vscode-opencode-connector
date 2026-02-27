@@ -7,7 +7,6 @@
     "declaration": false,
     "declarationMap": false,
     "outDir": "./out",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

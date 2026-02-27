@@ -20,6 +20,10 @@ vi.mock('vscode', () => ({
       update: vi.fn().mockResolvedValue(undefined),
     }),
   },
+  window: {
+    terminals: [] as unknown[],
+    onDidCloseTerminal: vi.fn(() => ({ dispose: vi.fn() })),
+  },
 }));
 
 // Mock config manager factory

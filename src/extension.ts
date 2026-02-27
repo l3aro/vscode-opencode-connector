@@ -6,12 +6,14 @@ import {
   handleAddMultipleFiles,
   handleAddToPrompt,
   handleCheckInstance,
+  handleSelectDefaultInstance,
   handleShowWorkspace,
   showStatusBarMenu,
 } from './commands';
 import { ConfigManager } from './config';
 import { ConnectionService, isRemoteSession } from './connection/connectionService';
 import { ContextManager } from './context/contextManager';
+import { DefaultInstanceManager } from './instance/defaultInstanceManager';
 import { InstanceManager } from './instance/instanceManager';
 import { OpenCodeCodeActionProvider } from './providers/codeActionProvider';
 import { OpenCodeGutterActionProvider } from './providers/gutterActionProvider';
@@ -88,7 +90,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
 
     // Subscribe to connection state changes FIRST (before other init that might fail)
     const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
-      statusBarManager?.updateConnectionStatus(event.connected);
+      statusBarManager?.updateConnectionStatus(event.connected, event.port);
     });
     extensionContext?.subscriptions?.push(connectionStateSub);
 
@@ -131,7 +133,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     connectionService
       .discoverAndConnect()
       .then(connected => {
-        statusBarManager?.updateConnectionStatus(connected);
+        statusBarManager?.updateConnectionStatus(connected, connectionService?.getPort());
       })
       .catch(() => {
         // Silently ignore — ensureConnected() will retry on-demand
@@ -186,13 +188,20 @@ function registerCommands(): void {
     async () => showStatusBarMenu(connectionService!, outputChannel!)
   );
 
+  // Select default instance command
+  const selectDefaultInstanceCommand = vscode.commands.registerCommand(
+    'opencodeConnector.selectDefaultInstance',
+    async () => handleSelectDefaultInstance(connectionService!, outputChannel!)
+  );
+
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
     addMultipleFilesCommand,
-    statusBarMenuCommand
+    statusBarMenuCommand,
+    selectDefaultInstanceCommand
   );
 }
 
@@ -206,6 +215,8 @@ function registerWorkspaceHandlers(): void {
     outputChannel?.info(
       `Workspace changed: ${workspaceInfo.rootCount} root(s), primary: ${workspaceInfo.primaryRoot?.name || 'none'}`
     );
+    DefaultInstanceManager.getInstance().clearDefault();
+    outputChannel?.info('Cleared default instance due to workspace change');
   });
 
   // Handle configuration changes
