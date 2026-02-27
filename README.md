@@ -37,13 +37,6 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 
 - **Explain and Fix (OpenCode)**: Click on any diagnostic (error, warning, info) and select this quick fix to send the error details to OpenCode for explanation and automatic fixing.
 
-### Gutter Indicators
-
-- **Diagnostic Gutter Icons**: Lines with diagnostics (errors, warnings) show an icon in the gutter.
-- **Quick Actions**: Hover over a diagnostic line to see a QuickPick menu with options to:
-  - Explain the error with AI
-  - Fix the error automatically
-
 ### Status Bar
 
 - **Connection Status**: Shows whether OpenCode is connected (`● OpenCode`) or disconnected (`○ OpenCode`).

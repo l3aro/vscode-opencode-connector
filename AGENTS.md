@@ -93,7 +93,7 @@ src/
 ├── connection/    # Connection service
 ├── context/       # Context tracking
 ├── instance/     # Instance management
-├── providers/    # VS Code providers (CodeAction, Gutter)
+├── providers/    # VS Code providers (CodeAction)
 ├── statusBar.ts  # Status bar management
 ├── types.ts      # Shared types
 └── utils/        # Utility functions
