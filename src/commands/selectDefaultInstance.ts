@@ -89,18 +89,18 @@ export async function handleSelectDefaultInstance(
     return;
   }
 
+  const currentDefaultPort = defaultManager.getDefaultPort();
+  const connectedPort = connectionService.getPort();
+
   // Build QuickPick items
-  const items: vscode.QuickPickItem[] = [
-    {
-      label: '$(close) Clear Default',
-      description: 'Remove the default instance selection',
-    },
-    ...workspaceInstances.map(inst => ({
+  const items: vscode.QuickPickItem[] = workspaceInstances.map(inst => {
+    const isSelected = inst.port === currentDefaultPort || inst.port === connectedPort;
+    return {
       label: `$(symbol-property) Port ${inst.port}: ${inst.title}`,
-      description: `Connect to port ${inst.port}`,
+      description: isSelected ? '$(check) Selected' : `Connect to port ${inst.port}`,
       detail: inst.title === 'unavailable' ? 'Session title unavailable' : undefined,
-    })),
-  ];
+    };
+  });
 
   const selected = await vscode.window.showQuickPick(items, {
     placeHolder: 'Select default OpenCode instance',
@@ -108,14 +108,6 @@ export async function handleSelectDefaultInstance(
   });
 
   if (!selected) {
-    return;
-  }
-
-  // Handle clear default
-  if (selected.label === '$(close) Clear Default') {
-    defaultManager.clearDefault();
-    await vscode.window.showInformationMessage('Default instance cleared');
-    outputChannel.info('[selectDefaultInstance] Default instance cleared');
     return;
   }
 
