@@ -250,21 +250,36 @@ describe('pathsMatch - parent/child directory matching', () => {
     expect(result).toBe(true);
   });
 
-  it.skip('should match parent directory case-insensitively on Windows', () => {
-    // Skipped: Only valid on Windows (case-insensitive filesystem)
-    // On Linux (case-sensitive), paths with different case don't match
+  it('should match parent directory case-insensitively on Windows', () => {
+    if (process.platform !== 'win32') {
+      return; // Skip on non-Windows
+    }
+    const result = pathsMatch('C:\\Users\\User\\Project', 'C:\\Users\\user\\project\\src');
+    expect(result).toBe(true);
   });
 
-  it.skip('should match child directory case-insensitively on Windows', () => {
-    // Skipped: Only valid on Windows (case-insensitive filesystem)
+  it('should match child directory case-insensitively on Windows', () => {
+    if (process.platform !== 'win32') {
+      return; // Skip on non-Windows
+    }
+    const result = pathsMatch('C:\\Users\\User\\Project\\Src', 'C:\\Users\\user\\project');
+    expect(result).toBe(true);
   });
 
-  it.skip('should match parent directory case-insensitively on macOS', () => {
-    // Skipped: Only valid on macOS (case-insensitive filesystem)
+  it('should match parent directory case-insensitively on macOS', () => {
+    if (process.platform !== 'darwin') {
+      return; // Skip on non-macOS
+    }
+    const result = pathsMatch('/Users/user/Project', '/Users/user/project/src');
+    expect(result).toBe(true);
   });
 
-  it.skip('should match child directory case-insensitively on macOS', () => {
-    // Skipped: Only valid on macOS (case-insensitive filesystem)
+  it('should match child directory case-insensitively on macOS', () => {
+    if (process.platform !== 'darwin') {
+      return; // Skip on non-macOS
+    }
+    const result = pathsMatch('/Users/user/Project/Src', '/Users/user/project');
+    expect(result).toBe(true);
   });
 
   it('should NOT match when paths have similar prefix but different separator boundaries', () => {
