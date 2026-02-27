@@ -449,10 +449,46 @@ export function pathsMatch(serverPath: string, localPath: string): boolean {
   const normalizedServer = normalize(serverPath);
   const normalizedLocal = normalize(localPath);
 
+  // Handle empty input paths - return false
+  if (!serverPath || !localPath) {
+    return false;
+  }
+
   // On case-insensitive filesystems (Windows, macOS), use case-insensitive comparison
-  // On case-sensitive filesystems (Linux, most remote servers), use case-sensitive comparison
   const isCaseSensitive = process.platform !== 'win32' && process.platform !== 'darwin';
 
+  // Check if parent is a parent directory (or equal) to child
+  const isParentOrEqual = (parent: string, child: string): boolean => {
+    // Root / or empty should not match anything
+    if (!parent || parent === '/') {
+      return false;
+    }
+
+    let parentToCheck = parent;
+    let childToCheck = child;
+
+    // For case-insensitive platforms, compare in lowercase
+    if (!isCaseSensitive) {
+      parentToCheck = parentToCheck.toLowerCase();
+      childToCheck = childToCheck.toLowerCase();
+    }
+
+    if (childToCheck.startsWith(parentToCheck)) {
+      const afterParent = childToCheck.slice(parentToCheck.length);
+      return afterParent.length === 0 || afterParent[0] === path.sep || afterParent[0] === '/';
+    }
+    return false;
+  };
+
+  // Bidirectional parent/child check
+  if (
+    isParentOrEqual(normalizedServer, normalizedLocal) ||
+    isParentOrEqual(normalizedLocal, normalizedServer)
+  ) {
+    return true;
+  }
+
+  // Exact match check
   if (isCaseSensitive) {
     return normalizedServer === normalizedLocal;
   }
