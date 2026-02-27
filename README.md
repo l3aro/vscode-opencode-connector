@@ -12,7 +12,7 @@ OpenCode is fantastic as a standalone TUI (Terminal User Interface). It's powerf
 
 You shouldn't have to choose between a great editor (VS Code) and a great AI agent (OpenCode). This connector gives you the best of both worlds:
 
-1.  **Context Awareness**: The TUI automatically "knows" what file you are working on. The extension sends your active file, selection, and diagnostics to the OpenCode context.
+1.  **Context Awareness**: When you use commands like "Add to Prompt", the extension sends your active file, selection, and diagnostics to OpenCode.
     - *No more copy-pasting code blocks.*
     - *No more manually typing file paths.*
 
@@ -41,11 +41,6 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 
 - **Connection Status**: Shows whether OpenCode is connected (`● OpenCode`) or disconnected (`○ OpenCode`).
 - **Click to Manage**: Click the status bar item to access connection management options.
-
-### Automatic Context Sync
-
-- Tracks your active document, selection, and diagnostics in real-time
-- Sends context automatically when you use commands
 
 ### Integrated Terminal
 
