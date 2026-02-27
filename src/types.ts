@@ -177,3 +177,53 @@ export interface TuiPublishEvent {
 export interface VcsInfo {
   branch: string;
 }
+
+/**
+ * Represents a stack frame in a debug session.
+ */
+export interface StackFrameInfo {
+  /** The name of the stack frame (function/method name) */
+  name: string;
+  /** The source file path or URI */
+  source?: string;
+  /** The line number in the source file (1-based) */
+  line: number;
+  /** The column number on the line (0-based) */
+  column: number;
+}
+
+/**
+ * Represents a variable in a debug context.
+ */
+export interface VariableInfo {
+  /** The variable name */
+  name: string;
+  /** The variable value as a string */
+  value: string;
+  /** The type of the variable (e.g., 'string', 'number', 'object') */
+  type: string;
+}
+
+/**
+ * Represents the current debug state including active stack frames and variables.
+ */
+export interface DebugContext {
+  /** The active stack frames in the current debug session */
+  stackFrames: StackFrameInfo[];
+  /** The current variables in scope */
+  variables: VariableInfo[];
+}
+
+/**
+ * Represents a debug session.
+ */
+export interface DebugSessionInfo {
+  /** The unique identifier of the debug session */
+  id: string;
+  /** The name of the debug session */
+  name: string;
+  /** The type of debug adapter (e.g., 'node', 'python') */
+  type: string;
+  /** The current workspace folder URI */
+  workspaceFolder?: string;
+}
