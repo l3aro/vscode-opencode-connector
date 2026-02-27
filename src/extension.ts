@@ -106,8 +106,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     extensionContext?.subscriptions?.push(codeActionProvider);
 
     // Register workspace change handlers
-
-    // Register workspace change handlers
     registerWorkspaceHandlers();
 
     // Eagerly discover and connect in background so first command is instant
