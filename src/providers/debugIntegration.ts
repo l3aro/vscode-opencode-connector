@@ -46,7 +46,7 @@ export async function getDebugContext(): Promise<DebugContext | null> {
         for (const v of vars) {
           variables.push({
             name: v.name,
-            value: v.value,
+            value: String(v.value),
             type: v.type || typeof v.value,
           });
         }

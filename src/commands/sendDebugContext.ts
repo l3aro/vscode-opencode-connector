@@ -12,39 +12,24 @@ export async function handleSendDebugContext(
   connectionService: ConnectionService,
   outputChannel: vscode.LogOutputChannel
 ): Promise<void> {
-  const session = vscode.debug.activeDebugSession;
-  if (!session) {
-    await vscode.window.showErrorMessage('No active debug session. Start a debug session first.');
-    return;
-  }
-
   try {
-    await session.customRequest('stackTrace');
-  } catch {
-    await vscode.window.showErrorMessage(
-      'Debugger is currently running. Pause the debugger to send context.'
-    );
-    return;
-  }
+    const connected = await connectionService.ensureConnected();
+    const openCodeClient = connectionService.getClient();
+    const lastAutoSpawnError = connectionService.getLastAutoSpawnError();
 
-  const connected = await connectionService.ensureConnected();
-  const openCodeClient = connectionService.getClient();
-  const lastAutoSpawnError = connectionService.getLastAutoSpawnError();
+    if (!connected || !openCodeClient) {
+      const msg = lastAutoSpawnError
+        ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
+        : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
+      await vscode.window.showErrorMessage(msg);
+      return;
+    }
 
-  if (!connected || !openCodeClient) {
-    const msg = lastAutoSpawnError
-      ? `OpenCode auto-spawn failed: ${lastAutoSpawnError}`
-      : 'No OpenCode instance found. Run `opencode --port <port>` in your project directory.';
-    await vscode.window.showErrorMessage(msg);
-    return;
-  }
-
-  try {
     const debugContext = await getDebugContext();
 
     if (!debugContext) {
       await vscode.window.showErrorMessage(
-        'Unable to get debug context. Make sure the debugger is paused.'
+        'No active debug session or debugger is not paused. Start a debug session and pause at a breakpoint.'
       );
       return;
     }

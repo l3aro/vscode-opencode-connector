@@ -5,6 +5,9 @@ const MAX_VARIABLE_DEPTH = 3;
 const MAX_VALUE_LENGTH = 500;
 
 function truncateValue(value: string, maxLength: number): string {
+  if (value == null) {
+    return String(value);
+  }
   if (value.length <= maxLength) {
     return value;
   }
@@ -16,24 +19,12 @@ function formatVariable(name: string, value: unknown, depth: number): string {
     return `${name} = [max depth reached]`;
   }
 
-  if (value === null) {
-    return `${name} = null`;
+  if (value == null) {
+    return `${name} = ${value}`;
   }
 
-  if (value === undefined) {
-    return `${name} = undefined`;
-  }
-
-  if (typeof value === 'object') {
-    try {
-      const str = JSON.stringify(value, null, 2);
-      return `${name} = ${truncateValue(str, MAX_VALUE_LENGTH)}`;
-    } catch {
-      return `${name} = [circular or non-serializable]`;
-    }
-  }
-
-  return `${name} = ${truncateValue(String(value), MAX_VALUE_LENGTH)}`;
+  const strValue = String(value);
+  return `${name} = ${truncateValue(strValue, MAX_VALUE_LENGTH)}`;
 }
 
 export function formatDebugContext(context: DebugContext): string {
