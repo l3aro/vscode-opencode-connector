@@ -131,18 +131,14 @@
     "menus": {
       "explorer/context": [
         {
-          "submenu": "opencodeConnector.addToOpencode",
-          "when": "resourceUri"
-        }
-      ],
-      "opencodeConnector.addToOpencode": [
-        {
           "command": "opencodeConnector.sendPath",
-          "label": "Send Path"
+          "label": "Send Path to OpenCode",
+          "group": "opencode"
         },
         {
           "command": "opencodeConnector.sendRelativePath",
-          "label": "Send Relative Path"
+          "label": "Send Relative Path to OpenCode",
+          "group": "opencode"
         }
       ]
     }

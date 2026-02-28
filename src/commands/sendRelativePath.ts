@@ -20,10 +20,11 @@ function formatRelativePaths(resources: vscode.Uri[]): string {
   const paths = resources.map(uri => {
     const relativePath = vscode.workspace.asRelativePath(uri, false);
 
+    let formatted = '@' + relativePath;
     if (isDirectory(uri.fsPath)) {
-      return relativePath + path.sep;
+      formatted += path.sep;
     }
-    return relativePath;
+    return formatted;
   });
 
   return paths.join('\n');

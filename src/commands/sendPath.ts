@@ -35,10 +35,11 @@ function isDirectory(filePath: string): boolean {
 function formatPaths(resources: vscode.Uri[]): string {
   const paths = resources.map(uri => {
     const filePath = uri.fsPath;
+    let formatted = '@' + filePath;
     if (isDirectory(filePath)) {
-      return filePath + path.sep;
+      formatted += path.sep;
     }
-    return filePath;
+    return formatted;
   });
 
   return paths.join('\n');
