@@ -33,6 +33,15 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 | `OpenCode: Show Workspace` | Display workspace information detected by the extension |
 | `OpenCode: Show Menu` | Quick access menu from the status bar |
 
+### Explorer Context Menu
+
+Right-click files or folders in the Explorer to quickly send them to OpenCode:
+
+- **Add to Opencode → Send Path**: Send absolute file/folder paths (e.g., `@/home/user/project/src/file.ts`)
+- **Add to Opencode → Send Relative Path**: Send relative paths (e.g., `@src/file.ts`)
+
+Multiple files/folders can be selected. Directories include a trailing slash.
+
 ### Code Actions
 
 - **Explain and Fix (OpenCode)**: Click on any diagnostic (error, warning, info) and select this quick fix to send the error details to OpenCode for explanation and automatic fixing.
