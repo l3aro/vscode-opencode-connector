@@ -1,32 +1,26 @@
 import { ConnectionService } from '../connection/connectionService';
+import { formatRelativePath, isDirectory } from '../utils/pathUtils';
 
-import * as path from 'path';
 import * as vscode from 'vscode';
 
+/**
+ * Show transient notification in status bar
+ * @param message - Message to display
+ */
 function showTransientNotification(message: string): void {
   vscode.window.setStatusBarMessage(`$(check) ${message}`, 3000);
 }
 
-function isDirectory(filePath: string): boolean {
-  if (filePath.endsWith('/') || filePath.endsWith('\\')) {
-    return true;
-  }
-
-  const basename = path.basename(filePath);
-  return !basename.includes('.');
-}
-
+/**
+ * Format relative paths for sending to OpenCode
+ * @param resources - Array of VS Code URIs
+ * @returns Formatted path string with @ prefix and trailing slashes for directories
+ */
 function formatRelativePaths(resources: vscode.Uri[]): string {
   const paths = resources.map(uri => {
     const relativePath = vscode.workspace.asRelativePath(uri, false);
-
-    let formatted = '@' + relativePath;
-    if (isDirectory(uri.fsPath)) {
-      formatted += path.sep;
-    }
-    return formatted;
+    return formatRelativePath(relativePath, isDirectory(uri.fsPath));
   });
-
   return paths.join('\n');
 }
 

@@ -1,6 +1,6 @@
 import { ConnectionService } from '../connection/connectionService';
+import { formatPaths } from '../utils/pathUtils';
 
-import * as path from 'path';
 import * as vscode from 'vscode';
 
 /**
@@ -9,40 +9,6 @@ import * as vscode from 'vscode';
  */
 function showTransientNotification(message: string): void {
   vscode.window.setStatusBarMessage(`$(check) ${message}`, 3000);
-}
-
-/**
- * Check if a file path is a directory
- * @param filePath - The file path to check
- * @returns True if the path is a directory
- */
-function isDirectory(filePath: string): boolean {
-  // Check if path ends with a directory separator or has no extension
-  if (filePath.endsWith('/') || filePath.endsWith('\\')) {
-    return true;
-  }
-
-  const basename = path.basename(filePath);
-  // If basename has no extension, it's likely a directory
-  return !basename.includes('.');
-}
-
-/**
- * Format paths for sending to OpenCode
- * @param resources - Array of VS Code URIs
- * @returns Formatted path string with trailing slashes for directories
- */
-function formatPaths(resources: vscode.Uri[]): string {
-  const paths = resources.map(uri => {
-    const filePath = uri.fsPath;
-    let formatted = '@' + filePath;
-    if (isDirectory(filePath)) {
-      formatted += path.sep;
-    }
-    return formatted;
-  });
-
-  return paths.join('\n');
 }
 
 export async function handleSendPath(
