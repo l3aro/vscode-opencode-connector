@@ -131,14 +131,17 @@
     "menus": {
       "explorer/context": [
         {
+          "submenu": "opencodeConnector.addToOpencode"
+        }
+      ],
+      "opencodeConnector.addToOpencode": [
+        {
           "command": "opencodeConnector.sendPath",
-          "label": "Send Path to OpenCode",
-          "group": "opencode"
+          "label": "Send Path"
         },
         {
           "command": "opencodeConnector.sendRelativePath",
-          "label": "Send Relative Path to OpenCode",
-          "group": "opencode"
+          "label": "Send Relative Path"
         }
       ]
     }
