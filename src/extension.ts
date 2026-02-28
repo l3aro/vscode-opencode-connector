@@ -7,6 +7,7 @@ import {
   handleAddToPrompt,
   handleCheckInstance,
   handleSelectDefaultInstance,
+  handleSendDebugContext,
   handleShowWorkspace,
   showStatusBarMenu,
 } from './commands';
@@ -158,6 +159,12 @@ function registerCommands(): void {
     async () => handleSelectDefaultInstance(connectionService!, outputChannel!)
   );
 
+  // Send debug context command
+  const sendDebugContextCommand = vscode.commands.registerCommand(
+    'opencodeConnector.sendDebugContext',
+    async () => handleSendDebugContext(connectionService!, outputChannel!)
+  );
+
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions?.push(
     statusCommand,
@@ -165,7 +172,8 @@ function registerCommands(): void {
     addFileCommand,
     addMultipleFilesCommand,
     statusBarMenuCommand,
-    selectDefaultInstanceCommand
+    selectDefaultInstanceCommand,
+    sendDebugContextCommand
   );
 }
 

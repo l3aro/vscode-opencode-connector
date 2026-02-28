@@ -46,6 +46,10 @@
       {
         "command": "opencodeConnector.selectDefaultInstance",
         "title": "OpenCode: Select Default Instance"
+      },
+      {
+        "command": "opencodeConnector.sendDebugContext",
+        "title": "OpenCode: Send Debug Context"
       }
     ],
     "keybindings": [
@@ -62,6 +66,13 @@
         "mac": "cmd+shift+alt+a",
         "when": "editorTextFocus",
         "title": "Add Multiple Files to OpenCode"
+      },
+      {
+        "command": "opencodeConnector.sendDebugContext",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "inDebugMode",
+        "title": "Send Debug Context to OpenCode"
       }
     ],
     "configuration": {
