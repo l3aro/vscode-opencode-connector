@@ -6,3 +6,5 @@ export { handleExplainAndFix } from './explainAndFix';
 export { showStatusBarMenu } from './showStatusBarMenu';
 export { handleSelectDefaultInstance } from './selectDefaultInstance';
 export { handleSendDebugContext } from './sendDebugContext';
+export { handleSendPath } from './sendPath';
+export { handleSendRelativePath } from './sendRelativePath';

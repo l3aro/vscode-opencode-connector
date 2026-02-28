@@ -8,6 +8,8 @@ import {
   handleCheckInstance,
   handleSelectDefaultInstance,
   handleSendDebugContext,
+  handleSendPath,
+  handleSendRelativePath,
   handleShowWorkspace,
   showStatusBarMenu,
 } from './commands';
@@ -165,6 +167,19 @@ function registerCommands(): void {
     async () => handleSendDebugContext(connectionService!, outputChannel!)
   );
 
+  // Send path command (from context menu)
+  const sendPathCommand = vscode.commands.registerCommand(
+    'opencodeConnector.sendPath',
+    async (resources: vscode.Uri[]) => handleSendPath(connectionService!, outputChannel!, resources)
+  );
+
+  // Send relative path command (from context menu)
+  const sendRelativePathCommand = vscode.commands.registerCommand(
+    'opencodeConnector.sendRelativePath',
+    async (resources: vscode.Uri[]) =>
+      handleSendRelativePath(connectionService!, outputChannel!, resources)
+  );
+
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions?.push(
     statusCommand,
@@ -173,7 +188,9 @@ function registerCommands(): void {
     addMultipleFilesCommand,
     statusBarMenuCommand,
     selectDefaultInstanceCommand,
-    sendDebugContextCommand
+    sendDebugContextCommand,
+    sendPathCommand,
+    sendRelativePathCommand
   );
 }
 
