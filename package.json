@@ -50,6 +50,14 @@
       {
         "command": "opencodeConnector.sendDebugContext",
         "title": "OpenCode: Send Debug Context"
+      },
+      {
+        "command": "opencodeConnector.sendPath",
+        "title": "OpenCode: Send Path"
+      },
+      {
+        "command": "opencodeConnector.sendRelativePath",
+        "title": "OpenCode: Send Relative Path"
       }
     ],
     "keybindings": [
@@ -113,6 +121,29 @@
           "description": "Automatically focus OpenCode terminal after sending prompts"
         }
       }
+    },
+    "submenus": [
+      {
+        "id": "opencodeConnector.addToOpencode",
+        "label": "Add to Opencode"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "opencodeConnector.addToOpencode"
+        }
+      ],
+      "opencodeConnector.addToOpencode": [
+        {
+          "command": "opencodeConnector.sendPath",
+          "label": "Send Path"
+        },
+        {
+          "command": "opencodeConnector.sendRelativePath",
+          "label": "Send Relative Path"
+        }
+      ]
     }
   },
   "scripts": {

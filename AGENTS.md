@@ -88,7 +88,7 @@ The project uses `@trivago/prettier-plugin-sort-imports` with this order:
 ```
 src/
 ├── api/           # HTTP clients, API types
-├── commands/      # VS Code command handlers
+├── commands/      # VS Code command handlers (addToPrompt, sendPath, sendRelativePath, etc.)
 ├── config.ts      # Configuration management
 ├── connection/    # Connection service
 ├── instance/     # Instance management
@@ -137,6 +137,29 @@ try {
 - Use `LogOutputChannel` for user-accessible logging (View → Output)
 - Return early with user messages for validation failures
 - Use `async/await` for all VS Code APIs
+
+#### Context Menu Commands
+
+When adding explorer context menu commands:
+- Define commands in `contributes.commands`
+- Define submenus in `contributes.submenus` (array of `{id, label}`)
+- Add submenu trigger to `contributes.menus["explorer/context"]`
+- Add submenu items to `contributes.menus["submenuId"]` (NOT `explorer/context/submenuId`)
+
+Example:
+```json
+"submenus": [
+  { "id": "myExtension.submenu", "label": "My Submenu" }
+],
+"menus": {
+  "explorer/context": [
+    { "submenu": "myExtension.submenu" }
+  ],
+  "myExtension.submenu": [
+    { "command": "myExtension.command", "label": "Do Something" }
+  ]
+}
+```
 
 ### Type Annotations
 
