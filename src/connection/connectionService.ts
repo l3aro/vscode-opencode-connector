@@ -102,9 +102,17 @@ export class ConnectionService {
           this.outputChannel?.debug(
             `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}" vs workspace: "${workspaceDir}"`
           );
+          this.outputChannel?.debug(`[discoverAndConnect] process.cwd(): "${process.cwd()}"`);
 
           const matches = pathsMatch(pathInfo.directory, workspaceDir);
           this.outputChannel?.debug(`[discoverAndConnect] Paths match: ${matches}`);
+
+          this.outputChannel?.debug(
+            `[discoverAndConnect] Normalized server: "${normalizePath(pathInfo.directory)}"`
+          );
+          this.outputChannel?.debug(
+            `[discoverAndConnect] Normalized workspace: "${normalizePath(workspaceDir)}"`
+          );
 
           // Normalize paths for comparison (platform-aware)
           if (matches) {
@@ -428,6 +436,21 @@ export function isRemoteSession(): boolean {
 }
 
 /**
+ * Normalize a filesystem path for comparison.
+ * @param p - Path to normalize
+ * @returns Normalized path string
+ */
+export function normalizePath(p: string): string {
+  // Resolve relative paths to absolute (handles "." and "./")
+  let resolved = path.resolve(p);
+  // Normalize separators to platform default
+  resolved = path.normalize(resolved);
+  // Remove trailing slashes
+  resolved = resolved.replace(/[\\/]+$/, '');
+  return resolved;
+}
+
+/**
  * Normalize and compare filesystem paths across platforms.
  * Handles: path separators, trailing slashes, remote path formats.
  * @param serverPath - Path returned by OpenCode server
@@ -435,19 +458,8 @@ export function isRemoteSession(): boolean {
  * @returns true if paths refer to the same directory
  */
 export function pathsMatch(serverPath: string, localPath: string): boolean {
-  // Normalize: resolve to absolute, remove trailing separators, lowercase if case-insensitive
-  const normalize = (p: string): string => {
-    // Resolve relative paths to absolute (handles "." and "./")
-    let resolved = path.resolve(p);
-    // Normalize separators to platform default
-    resolved = path.normalize(resolved);
-    // Remove trailing slashes
-    resolved = resolved.replace(/[\\/]+$/, '');
-    return resolved;
-  };
-
-  const normalizedServer = normalize(serverPath);
-  const normalizedLocal = normalize(localPath);
+  const normalizedServer = normalizePath(serverPath);
+  const normalizedLocal = normalizePath(localPath);
 
   // Handle empty input paths - return false
   if (!serverPath || !localPath) {
