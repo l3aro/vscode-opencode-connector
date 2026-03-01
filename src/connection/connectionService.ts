@@ -102,9 +102,23 @@ export class ConnectionService {
           this.outputChannel?.debug(
             `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}" vs workspace: "${workspaceDir}"`
           );
+          this.outputChannel?.debug(`[discoverAndConnect] process.cwd(): "${process.cwd()}"`);
 
           const matches = pathsMatch(pathInfo.directory, workspaceDir);
           this.outputChannel?.debug(`[discoverAndConnect] Paths match: ${matches}`);
+
+          const normalize = (p: string): string => {
+            let resolved = path.resolve(p);
+            resolved = path.normalize(resolved);
+            resolved = resolved.replace(/[\\/]+$/, '');
+            return resolved;
+          };
+          this.outputChannel?.debug(
+            `[discoverAndConnect] Normalized server: "${normalize(pathInfo.directory)}"`
+          );
+          this.outputChannel?.debug(
+            `[discoverAndConnect] Normalized workspace: "${normalize(workspaceDir)}"`
+          );
 
           // Normalize paths for comparison (platform-aware)
           if (matches) {

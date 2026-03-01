@@ -365,95 +365,47 @@ export class InstanceManager {
 
   /**
    * Scan for OpenCode processes on Unix (Linux/macOS)
+   * Uses ss (socket statistics) for reliable detection in SSH environments
    */
   private scanProcessesUnix(): Promise<DiscoveredProcess[]> {
     return new Promise(resolve => {
-      // Find PIDs of opencode processes
-      // Match opencode at word boundary or after path separator
-      // Matches: "opencode", "opencode --port 4096", "/usr/bin/opencode", "./opencode"
-      // Does NOT match: "opencode-extra", "opencodehelper", "my-opencode-tool"
-      const pgrep = child_process.spawn('pgrep', ['-f', '(^|/)opencode($|\\s)']);
+      const ss = child_process.spawn('ss', ['-tlnp']);
+      let ssOut = '';
 
-      this.logger?.info('[scanProcessesUnix] Running pgrep for opencode processes');
-
-      let stdout = '';
-
-      pgrep.stdout.on('data', data => {
-        stdout += data.toString();
+      ss.stdout.on('data', data => {
+        ssOut += data.toString();
       });
-      pgrep.on('error', err => {
-        this.logger?.warn(`[scanProcessesUnix] pgrep error: ${err.message}`);
+      ss.on('error', err => {
+        this.logger?.warn(`[scanProcessesUnix] ss error: ${err.message}`);
         resolve([]);
       });
-      pgrep.on('close', code => {
-        if (code !== 0 && code !== 1) {
-          // code 1 means no processes found (which is fine)
-          this.logger?.warn(`[scanProcessesUnix] pgrep exited with code ${code}`);
-        }
-
-        const pids = stdout
-          .trim()
-          .split('\n')
-          .map(s => parseInt(s.trim(), 10))
-          .filter(n => !isNaN(n));
-
-        this.logger?.info(`[scanProcessesUnix] Found PIDs: ${pids.join(', ') || 'none'}`);
-
-        if (pids.length === 0) {
-          resolve([]);
-          return;
-        }
-
-        // For each PID, find its listening port via lsof
+      ss.on('close', () => {
         const results: DiscoveredProcess[] = [];
-        let pending = pids.length;
 
-        for (const pid of pids) {
-          const lsof = child_process.spawn('lsof', [
-            '-w',
-            '-iTCP',
-            '-sTCP:LISTEN',
-            '-P',
-            '-n',
-            '-a',
-            '-p',
-            String(pid),
-          ]);
-          let lsofOut = '';
+        for (const line of ssOut.split('\n')) {
+          if (!line.includes('LISTEN')) continue;
 
-          lsof.stdout.on('data', data => {
-            lsofOut += data.toString();
-          });
-          lsof.on('error', () => {
-            pending--;
-            if (pending === 0) resolve(results);
-          });
-          lsof.on('close', () => {
-            for (const line of lsofOut.split('\n')) {
-              if (line.startsWith('COMMAND')) continue; // skip header
-              const parts = line.trim().split(/\s+/);
-              // lsof format: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
-              // NAME is like "127.0.0.1:4096" or "*:4096"
-              const namePart = parts[8];
-              if (namePart) {
-                const portMatch = namePart.match(/:(\d+)$/);
-                if (portMatch) {
-                  const port = parseInt(portMatch[1], 10);
-                  if (!isNaN(port)) {
-                    results.push({ pid, port });
-                  }
-                }
-              }
-            }
-            pending--;
-            if (pending === 0) {
-              this.logger?.info(
-                `[scanProcessesUnix] Found processes with ports: ${JSON.stringify(results)}`
-              );
-              resolve(results);
-            }
-          });
+          const processMatch = line.match(/users:\(\("(?:\.?opencode)"[^)]+\)/);
+          if (!processMatch) continue;
+
+          const pidMatch = line.match(/pid=(\d+)/);
+          if (!pidMatch) continue;
+
+          const pid = parseInt(pidMatch[1], 10);
+
+          const portMatch = line.match(/(\d+\.\d+\.\d+\.\d+|\[::\]|\*):(\d+)/);
+          if (!portMatch) continue;
+
+          const port = parseInt(portMatch[2], 10);
+          if (isNaN(port)) continue;
+
+          results.push({ pid, port });
         }
+
+        this.logger?.info(
+          `[scanProcessesUnix] Found processes with ports: ${JSON.stringify(results)}`
+        );
+        resolve(results);
       });
     });
   }
