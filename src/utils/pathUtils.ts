@@ -50,7 +50,7 @@ export function formatPaths(resources: { fsPath: string }[]): string {
  * @returns Formatted path string with @ prefix and trailing slash for directories
  */
 export function formatRelativePath(relativePath: string, isDir: boolean): string {
-  let formatted = '@' + relativePath;
+  let formatted = '@' + relativePath.replace(/\//g, path.sep);
   if (isDir) {
     formatted += path.sep;
   }

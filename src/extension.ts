@@ -4,8 +4,11 @@
  */
 import {
   handleAddMultipleFiles,
+  handleAddSelectionToPrompt,
   handleAddToPrompt,
   handleCheckInstance,
+  handleOpenInOpencode,
+  handleOpenNewInstance,
   handleSelectDefaultInstance,
   handleSendDebugContext,
   handleSendPath,
@@ -191,6 +194,31 @@ function registerCommands(): void {
     }
   );
 
+  // Add selection/file reference to OpenCode prompt (editor context menu)
+  const instanceManager = InstanceManager.getInstance();
+  const addSelectionToPromptCommand = vscode.commands.registerCommand(
+    'opencodeConnector.addSelectionToPrompt',
+    async () => handleAddSelectionToPrompt(connectionService!, outputChannel!)
+  );
+
+  // Open a new OpenCode instance as an editor tab in the correct workspace
+  const openNewInstanceCommand = vscode.commands.registerCommand(
+    'opencodeConnector.openNewInstance',
+    async () => handleOpenNewInstance(connectionService!, instanceManager, outputChannel!)
+  );
+
+  // Open in OpenCode — Explorer context menu (right-click file or folder)
+  const openInOpencodeCommand = vscode.commands.registerCommand(
+    'opencodeConnector.openInOpencode',
+    async (uri: vscode.Uri, _selectedUris: vscode.Uri[]) => {
+      // uri is the right-clicked item; fall back to active editor if somehow undefined
+      const target = uri ?? vscode.window.activeTextEditor?.document.uri;
+      if (target) {
+        await handleOpenInOpencode(connectionService!, instanceManager, outputChannel!, target);
+      }
+    }
+  );
+
   // Push all subscriptions for cleanup
   extensionContext?.subscriptions?.push(
     statusCommand,
@@ -201,7 +229,10 @@ function registerCommands(): void {
     selectDefaultInstanceCommand,
     sendDebugContextCommand,
     sendPathCommand,
-    sendRelativePathCommand
+    sendRelativePathCommand,
+    addSelectionToPromptCommand,
+    openNewInstanceCommand,
+    openInOpencodeCommand
   );
 }
 

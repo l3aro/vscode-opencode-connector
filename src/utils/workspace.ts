@@ -3,6 +3,7 @@
  * Handles workspace root detection and multi-root workspace support
  */
 import * as crypto from 'crypto';
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 /**
@@ -218,7 +219,8 @@ export const WorkspaceUtils = {
     }
 
     const relativePath = vscode.workspace.asRelativePath(document.uri);
-    let ref = `@${relativePath}`;
+    const normalizedPath = relativePath.replace(/\//g, path.sep);
+    let ref = `@${normalizedPath}`;
 
     const selection = activeEditor.selection;
     if (!selection.isEmpty) {

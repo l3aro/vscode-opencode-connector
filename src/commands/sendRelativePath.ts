@@ -34,7 +34,12 @@ export async function handleSendRelativePath(
     return;
   }
 
-  const connected = await connectionService.ensureConnected();
+  // Use the workspace of the first selected resource to route to the correct instance.
+  const workspacePath = vscode.workspace.getWorkspaceFolder(resources[0])?.uri.fsPath;
+  const connected = workspacePath
+    ? await connectionService.ensureConnectedForWorkspace(workspacePath)
+    : await connectionService.ensureConnected();
+
   const openCodeClient = connectionService.getClient();
   const lastAutoSpawnError = connectionService.getLastAutoSpawnError();
 
@@ -48,7 +53,7 @@ export async function handleSendRelativePath(
 
   try {
     const port = openCodeClient.getPort();
-    const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+    const workspaceDir = workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'unknown';
     const paths = formatRelativePaths(resources);
 
     outputChannel.info(`[sendRelativePath] Sending to port ${port}, cwd: ${workspaceDir}`);

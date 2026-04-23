@@ -51,7 +51,17 @@ export async function handleAddMultipleFiles(
     return;
   }
 
-  const connected = await connectionService.ensureConnected();
+  // Use the active editor's workspace (or the first workspace folder) to route
+  // to the correct OpenCode instance in multi-root / multi-project setups.
+  const activeEditor = vscode.window.activeTextEditor;
+  const workspacePath = activeEditor
+    ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)?.uri.fsPath
+    : vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+  const connected = workspacePath
+    ? await connectionService.ensureConnectedForWorkspace(workspacePath)
+    : await connectionService.ensureConnected();
+
   const openCodeClient = connectionService.getClient();
   const lastAutoSpawnError = connectionService.getLastAutoSpawnError();
 
@@ -65,7 +75,7 @@ export async function handleAddMultipleFiles(
 
   try {
     const port = openCodeClient.getPort();
-    const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+    const workspaceDir = workspacePath ?? 'unknown';
     outputChannel.info(`[addMultipleFiles] Sending to port ${port}, cwd: ${workspaceDir}`);
 
     const refs = selected

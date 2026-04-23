@@ -28,19 +28,41 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 | Command | Description | Keyboard Shortcut |
 |---------|-------------|-------------------|
 | `OpenCode: Add to Prompt` | Send the current file reference (e.g., `@src/main.ts#L10-L20`) to the TUI | `Ctrl+Shift+A` / `Cmd+Shift+A` |
+| `OpenCode: Add Selection to Prompt` | Send the selected code range (e.g., `@src/main.ts#L10-L20`) to the TUI | Right-click in editor |
 | `OpenCode: Select Files to Add` | Open a file picker to select multiple files to add to the prompt | `Ctrl+Shift+Alt+A` / `Cmd+Shift+Alt+A` |
-| `OpenCode: Check Instance` | Check if an OpenCode instance is running and connected |
-| `OpenCode: Show Workspace` | Display workspace information detected by the extension |
-| `OpenCode: Show Menu` | Quick access menu from the status bar |
+| `OpenCode: Open in OpenCode` | Open an OpenCode instance for the current workspace as an editor tab | Editor title bar / Explorer right-click |
+| `OpenCode: Check Instance` | Check if an OpenCode instance is running and connected | — |
+| `OpenCode: Show Workspace` | Display workspace information detected by the extension | — |
+| `OpenCode: Show Menu` | Quick access menu from the status bar | — |
+
+### Editor Title Button
+
+A terminal button (⬛) appears in the editor title bar for quick access. Clicking it:
+
+1. Finds a running OpenCode instance for the **current workspace** folder.
+2. Opens it as an **editor tab** (like Claude Code) — keeps your terminal panel free.
+3. If no instance is running, spawns one automatically.
+
+### Editor Context Menu
+
+Right-click inside any editor to send your selection directly to OpenCode:
+
+- **Add Selection to OpenCode**: Sends the selected code range as `@file#L10-L20` to the active OpenCode instance.
+  - Appears only when text is selected (`editorHasSelection`).
 
 ### Explorer Context Menu
 
-Right-click files or folders in the Explorer to quickly send them to OpenCode:
+Right-click files or folders in the Explorer for two sets of actions:
 
+- **Open in OpenCode**: Launch (or re-attach to) an OpenCode instance for that folder's workspace — opens as an editor tab.
 - **Add to Opencode → Send Path**: Send absolute file/folder paths (e.g., `@/home/user/project/src/file.ts`)
 - **Add to Opencode → Send Relative Path**: Send relative paths (e.g., `@src/file.ts`)
 
 Multiple files/folders can be selected. Directories include a trailing slash.
+
+### Workspace-Aware Routing
+
+All send commands automatically route to the **correct OpenCode instance** for the workspace of your active file. In multi-root workspaces each root folder gets its own instance — no manual switching required.
 
 ### Code Actions
 
@@ -53,16 +75,18 @@ Multiple files/folders can be selected. Directories include a trailing slash.
 
 ### Integrated Terminal
 
-- Runs the OpenCode TUI directly within VS Code's terminal panel
+- Runs the OpenCode TUI directly within VS Code's terminal or as an editor tab
 - Auto-focuses the terminal after sending prompts (configurable)
 
 ## Usage
 
 1.  Open your project in VS Code.
-2.  The extension will find or spawn an OpenCode TUI session.
-3.  Use **`OpenCode: Add to Prompt`** (or `Ctrl+Shift+A`) to reference your current code in the TUI.
-4.  Use **`OpenCode: Select Files to Add`** (or `Ctrl+Shift+Alt+A`) to pick multiple files to add to the prompt.
-5.  Use **`Explain and Fix (OpenCode)`** to quickly fix errors - hover over any error or click the lightbulb.
+2.  The extension will find or spawn an OpenCode TUI session for your workspace.
+3.  Click the **⬛ button** in the editor title bar (or right-click a folder → **Open in OpenCode**) to open the TUI as an editor tab.
+4.  Use **`OpenCode: Add to Prompt`** (`Ctrl+Shift+A`) to reference your current file in the TUI.
+5.  **Select code** in the editor, right-click → **Add Selection to OpenCode** to send the exact line range.
+6.  Use **`OpenCode: Select Files to Add`** (`Ctrl+Shift+Alt+A`) to pick multiple files at once.
+7.  Use **`Explain and Fix (OpenCode)`** to quickly fix errors — hover over any error or click the lightbulb.
 
 ## Configuration
 

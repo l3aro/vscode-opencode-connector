@@ -58,6 +58,20 @@
       {
         "command": "opencodeConnector.sendRelativePath",
         "title": "OpenCode: Send Relative Path"
+      },
+      {
+        "command": "opencodeConnector.addSelectionToPrompt",
+        "title": "OpenCode: Add to Opencode"
+      },
+      {
+        "command": "opencodeConnector.openNewInstance",
+        "title": "OpenCode: Open New Instance",
+        "icon": "$(terminal-tmux)"
+      },
+      {
+        "command": "opencodeConnector.openInOpencode",
+        "title": "Open in OpenCode",
+        "icon": "$(terminal-tmux)"
       }
     ],
     "keybindings": [
@@ -131,6 +145,10 @@
     "menus": {
       "explorer/context": [
         {
+          "command": "opencodeConnector.openInOpencode",
+          "group": "navigation@10"
+        },
+        {
           "submenu": "opencodeConnector.addToOpencode"
         }
       ],
@@ -142,6 +160,20 @@
         {
           "command": "opencodeConnector.sendRelativePath",
           "label": "Send Relative Path"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "opencodeConnector.addSelectionToPrompt",
+          "when": "editorHasSelection",
+          "group": "opencodeConnector@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "opencodeConnector.openNewInstance",
+          "when": "editorIsOpen",
+          "group": "navigation"
         }
       ]
     }

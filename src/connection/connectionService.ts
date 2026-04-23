@@ -188,6 +188,100 @@ export class ConnectionService {
   }
 
   /**
+   * Scan running OpenCode processes and return the port of the one serving the
+   * given workspace path. Does NOT modify any internal state.
+   *
+   * @param workspacePath - Filesystem path of the target workspace folder
+   * @returns port number of the matching instance, or undefined if none found
+   */
+  async findPortForWorkspace(workspacePath: string): Promise<number | undefined> {
+    const processes = await this.instanceManager.scanForProcesses();
+    const uniquePorts = [...new Set(processes.map(p => p.port))];
+
+    for (const port of uniquePorts) {
+      try {
+        const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
+        const pathInfo = await tempClient.getPath();
+        tempClient.destroy();
+
+        this.outputChannel?.debug(
+          `[findPortForWorkspace] Port ${port} → "${pathInfo.directory}" vs target "${workspacePath}"`
+        );
+
+        if (pathsMatch(pathInfo.directory, workspacePath)) {
+          this.outputChannel?.info(
+            `[findPortForWorkspace] Matched port ${port} for workspace "${workspacePath}"`
+          );
+          return port;
+        }
+      } catch {
+        this.outputChannel?.debug(`[findPortForWorkspace] Port ${port} did not respond`);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Ensure we're connected to the OpenCode instance that serves the given workspace path.
+   *
+   * Priority:
+   *  1. Current client — if it already serves this workspace, reuse it (fast path).
+   *  2. Process scan via findPortForWorkspace — swap the internal client when a match is found
+   *     so the status bar reflects the correct connection.
+   *  3. Fallback — delegates to ensureConnected() (handles auto-spawn, configured-port, etc.).
+   *
+   * @param workspacePath - Filesystem path of the target workspace folder
+   * @returns true if connected to an instance serving this workspace (or any instance as fallback)
+   */
+  async ensureConnectedForWorkspace(workspacePath: string): Promise<boolean> {
+    this.outputChannel?.info(`[ensureConnectedForWorkspace] Target: "${workspacePath}"`);
+
+    // 1. Fast path: check whether the current client already serves this workspace
+    if (this.client) {
+      try {
+        const alive = await this.client.testConnection();
+        if (alive) {
+          const pathInfo = await this.client.getPath();
+          if (pathsMatch(pathInfo.directory, workspacePath)) {
+            this.outputChannel?.debug(
+              '[ensureConnectedForWorkspace] Current client already serves this workspace'
+            );
+            return true;
+          }
+          this.outputChannel?.info(
+            `[ensureConnectedForWorkspace] Current client serves "${pathInfo.directory}", scanning for better match`
+          );
+        }
+      } catch {
+        // Client is dead — fall through to discovery
+      }
+    }
+
+    // 2. Scan for a process serving the target workspace
+    const port = await this.findPortForWorkspace(workspacePath);
+
+    if (port !== undefined) {
+      if (this.client) {
+        this.client.destroy();
+      }
+      this.client = new OpenCodeClient({ port });
+      this.connectedPort = port;
+      this.outputChannel?.info(
+        `[ensureConnectedForWorkspace] Switched to port ${port} for workspace "${workspacePath}"`
+      );
+      this._onDidChangeConnectionState.fire({ connected: true, port });
+      return true;
+    }
+
+    // 3. No workspace-specific instance found — fall back to generic connection
+    this.outputChannel?.info(
+      '[ensureConnectedForWorkspace] No matching instance found, falling back to ensureConnected()'
+    );
+    return this.ensureConnected();
+  }
+
+  /**
    * Ensure we're connected to an OpenCode instance.
    * Tries: current client → auto-discovery → auto-spawn → configured port.
    * @returns true if connected
