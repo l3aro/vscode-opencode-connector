@@ -8,3 +8,6 @@ export { handleSelectDefaultInstance } from './selectDefaultInstance';
 export { handleSendDebugContext } from './sendDebugContext';
 export { handleSendPath } from './sendPath';
 export { handleSendRelativePath } from './sendRelativePath';
+export { handleAddSelectionToPrompt } from './addSelectionToPrompt';
+export { handleOpenNewInstance } from './openNewInstance';
+export { handleOpenInOpencode } from './openInOpencode';

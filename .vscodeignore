@@ -12,3 +12,4 @@ esbuild.js
 package-lock.json
 **/*.ts
 **/*.map
+.atl

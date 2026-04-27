@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-04-23
+
+### Added
+- Editor title bar button to open OpenCode as an editor tab for the current workspace
+- Explorer context menu entry **Open in OpenCode** (group `navigation`) to launch or re-attach an instance for any folder
+- Editor right-click command **Add Selection to OpenCode** — sends the selected range as `@file#L10-L20` (visible only when text is selected)
+- Workspace-aware routing: all send commands now resolve and connect to the correct OpenCode instance for the workspace of the active file; multi-root workspaces are fully supported
+- `findPortForWorkspace()` on `ConnectionService` — lightweight port lookup without mutating connection state
+- `openOpencodeForWorkspace()` shared helper used by both the title bar button and the Explorer context menu
+- `SpawnTerminalOptions` on `InstanceManager.spawnInTerminal()` — `asEditor: true` opens the terminal as an editor tab (`TerminalLocation.Editor`)
+- `.vscode/launch.json` and `.vscode/tasks.json` for F5 extension development
+
+### Fixed
+- Windows path separator normalization: `formatRelativePath` and `getActiveFileRef` now use `path.sep` instead of always producing forward slashes
+
 ## [1.2.0] - 2026-02-28
 
 ### Added
