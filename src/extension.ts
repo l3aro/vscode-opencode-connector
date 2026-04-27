@@ -26,9 +26,6 @@ import { WorkspaceUtils } from './utils/workspace';
 
 import * as vscode from 'vscode';
 
-/**
- * Global extension state
- */
 let configManager: ConfigManager | undefined;
 let connectionService: ConnectionService | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
@@ -43,134 +40,93 @@ let outputChannel: vscode.LogOutputChannel | undefined;
 export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
   extensionContext = context;
 
-  // Create log output channel for user-accessible logging (View → Output → OpenCode Connector)
-  try {
-    outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
-    context?.subscriptions?.push(outputChannel);
-    outputChannel?.info('OpenCode Connector extension is now active');
-  } catch (err) {
-    // Fallback: use console if OutputChannel fails (e.g., early activation)
-    console.error('Failed to create output channel:', err);
-  }
+  outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
+  context.subscriptions.push(outputChannel);
+  outputChannel.info('OpenCode Connector extension is now active');
 
-  try {
-    // Initialize configuration manager (singleton)
-    configManager = ConfigManager.getInstance(extensionUri);
+  configManager = ConfigManager.getInstance(extensionUri);
+  const instanceManager = InstanceManager.getInstance(configManager);
 
-    // Initialize instance manager (singleton)
-    const instanceManager = InstanceManager.getInstance(configManager);
+  instanceManager.setLogger({
+    info: (msg: string) => outputChannel!.info(msg),
+    warn: (msg: string) => outputChannel!.warn(msg),
+    error: (msg: string) => outputChannel!.error(msg),
+  });
 
-    // Set up logger for InstanceManager to use the OutputChannel
-    if (outputChannel) {
-      const channel = outputChannel;
-      instanceManager.setLogger({
-        info: (msg: string) => channel.info(msg),
-        warn: (msg: string) => channel.warn(msg),
-        error: (msg: string) => channel.error(msg),
-      });
+  connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
+
+  statusBarManager = StatusBarManager.getInstance();
+  statusBarManager.initialize(context);
+
+  const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
+    statusBarManager!.updateConnectionStatus(event.connected, event.port);
+  });
+  extensionContext.subscriptions.push(connectionStateSub);
+
+  registerCommands();
+
+  const codeActionProvider = vscode.languages.registerCodeActionsProvider(
+    '*',
+    new OpenCodeCodeActionProvider(),
+    {
+      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
     }
+  );
+  extensionContext.subscriptions.push(codeActionProvider);
 
-    // Initialize connection service
-    connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
+  registerWorkspaceHandlers();
 
-    // Initialize status bar manager for connection status
-    statusBarManager = StatusBarManager.getInstance();
-    statusBarManager.initialize(context);
-
-    // Subscribe to connection state changes FIRST (before other init that might fail)
-    const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
-      statusBarManager?.updateConnectionStatus(event.connected, event.port);
+  connectionService
+    .discoverAndConnect()
+    .then(connected => {
+      statusBarManager!.updateConnectionStatus(connected, connectionService!.getPort());
+    })
+    .catch(() => {
+      statusBarManager!.updateConnectionStatus(false);
     });
-    extensionContext?.subscriptions?.push(connectionStateSub);
 
-    // Register extension commands
-    registerCommands();
-
-    // Register CodeActionProvider for all languages
-    const codeActionProvider = vscode.languages.registerCodeActionsProvider(
-      '*',
-      new OpenCodeCodeActionProvider(),
-      {
-        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
-      }
-    );
-    extensionContext?.subscriptions?.push(codeActionProvider);
-
-    // Register workspace change handlers
-    registerWorkspaceHandlers();
-
-    // Eagerly discover and connect in background so first command is instant
-    connectionService
-      .discoverAndConnect()
-      .then(connected => {
-        statusBarManager?.updateConnectionStatus(connected, connectionService?.getPort());
-      })
-      .catch(() => {
-        // Silently ignore — ensureConnected() will retry on-demand
-        statusBarManager?.updateConnectionStatus(false);
-      });
-
-    outputChannel?.info(
-      'OpenCode Connector fully initialized' +
-        (isRemoteSession() ? ` [Remote: ${vscode.env.remoteName}]` : ' [Local]')
-    );
-  } catch (err) {
-    outputChannel?.error(`Failed to initialize OpenCode Connector: ${(err as Error).message}`);
-    // Extension remains active but may have reduced functionality
-  }
+  outputChannel.info(
+    'OpenCode Connector fully initialized' +
+      (isRemoteSession() ? ` [Remote: ${vscode.env.remoteName}]` : ' [Local]')
+  );
 }
 
-/**
- * Register VSCode commands
- */
 function registerCommands(): void {
-  if (!connectionService || !outputChannel) {
-    return;
-  }
-
-  // Check instance status command
   const statusCommand = vscode.commands.registerCommand(
     'opencodeConnector.checkInstance',
     async () => handleCheckInstance(connectionService!)
   );
 
-  // Show workspace info command
   const workspaceCommand = vscode.commands.registerCommand(
     'opencodeConnector.showWorkspace',
     async () => handleShowWorkspace()
   );
 
-  // Add file reference to OpenCode prompt
   const addFileCommand = vscode.commands.registerCommand(
     'opencodeConnector.addToPrompt',
     async () => handleAddToPrompt(connectionService!, outputChannel!)
   );
 
-  // Multi-file picker command
   const addMultipleFilesCommand = vscode.commands.registerCommand(
     'opencodeConnector.addMultipleFiles',
     async () => handleAddMultipleFiles(connectionService!, outputChannel!)
   );
 
-  // Status bar menu command
   const statusBarMenuCommand = vscode.commands.registerCommand(
     'opencodeConnector.showStatusBarMenu',
     async () => showStatusBarMenu(connectionService!, outputChannel!)
   );
 
-  // Select default instance command
   const selectDefaultInstanceCommand = vscode.commands.registerCommand(
     'opencodeConnector.selectDefaultInstance',
     async () => handleSelectDefaultInstance(connectionService!, outputChannel!)
   );
 
-  // Send debug context command
   const sendDebugContextCommand = vscode.commands.registerCommand(
     'opencodeConnector.sendDebugContext',
     async () => handleSendDebugContext(connectionService!, outputChannel!)
   );
 
-  // Send path command (from context menu)
   const sendPathCommand = vscode.commands.registerCommand(
     'opencodeConnector.sendPath',
     async (...resources: vscode.Uri[]) => {
@@ -182,7 +138,6 @@ function registerCommands(): void {
     }
   );
 
-  // Send relative path command (from context menu)
   const sendRelativePathCommand = vscode.commands.registerCommand(
     'opencodeConnector.sendRelativePath',
     async (...resources: vscode.Uri[]) => {
@@ -194,24 +149,20 @@ function registerCommands(): void {
     }
   );
 
-  // Add selection/file reference to OpenCode prompt (editor context menu)
   const instanceManager = InstanceManager.getInstance();
   const addSelectionToPromptCommand = vscode.commands.registerCommand(
     'opencodeConnector.addSelectionToPrompt',
     async () => handleAddSelectionToPrompt(connectionService!, outputChannel!)
   );
 
-  // Open a new OpenCode instance as an editor tab in the correct workspace
   const openNewInstanceCommand = vscode.commands.registerCommand(
     'opencodeConnector.openNewInstance',
     async () => handleOpenNewInstance(connectionService!, instanceManager, outputChannel!)
   );
 
-  // Open in OpenCode — Explorer context menu (right-click file or folder)
   const openInOpencodeCommand = vscode.commands.registerCommand(
     'opencodeConnector.openInOpencode',
     async (uri: vscode.Uri) => {
-      // uri is the right-clicked item; fall back to active editor if somehow undefined
       const target = uri ?? vscode.window.activeTextEditor?.document.uri;
       if (target) {
         await handleOpenInOpencode(connectionService!, instanceManager, outputChannel!, target);
@@ -219,8 +170,7 @@ function registerCommands(): void {
     }
   );
 
-  // Push all subscriptions for cleanup
-  extensionContext?.subscriptions?.push(
+  extensionContext!.subscriptions.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
@@ -236,46 +186,32 @@ function registerCommands(): void {
   );
 }
 
-/**
- * Register workspace change handlers
- */
 function registerWorkspaceHandlers(): void {
-  // Handle workspace folder changes
   const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(() => {
     const workspaceInfo = WorkspaceUtils.detectWorkspace();
-    outputChannel?.info(
+    outputChannel!.info(
       `Workspace changed: ${workspaceInfo.rootCount} root(s), primary: ${workspaceInfo.primaryRoot?.name || 'none'}`
     );
     DefaultInstanceManager.getInstance().clearDefault();
-    outputChannel?.info('Cleared default instance due to workspace change');
+    outputChannel!.info('Cleared default instance due to workspace change');
   });
 
-  // Handle configuration changes
   const configChange = vscode.workspace.onDidChangeConfiguration(event => {
     if (event.affectsConfiguration('opencode')) {
-      outputChannel?.info('OpenCode configuration changed');
+      outputChannel!.info('OpenCode configuration changed');
     }
   });
 
-  extensionContext?.subscriptions?.push(workspaceFoldersChange, configChange);
+  extensionContext!.subscriptions.push(workspaceFoldersChange, configChange);
 }
 
-/**
- * Called when the extension is deactivated.
- */
 export function deactivate(): void {
   outputChannel?.info('OpenCode Connector extension is now deactivated');
 
-  // Cleanup in reverse order
-  if (connectionService) {
-    const client = connectionService.getClient();
-    if (client) {
-      client.destroy();
-    }
-    connectionService = undefined;
-  }
+  const client = connectionService?.getClient();
+  client?.destroy();
+  connectionService = undefined;
 
-  // Reset singletons
   InstanceManager.resetInstance();
   configManager = undefined;
 }

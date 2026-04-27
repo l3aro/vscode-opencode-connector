@@ -21,7 +21,6 @@ export async function handleSendPath(
     return;
   }
 
-  // Use the workspace of the first selected resource to route to the correct instance.
   const workspacePath = vscode.workspace.getWorkspaceFolder(resources[0])?.uri.fsPath;
   const connected = workspacePath
     ? await connectionService.ensureConnectedForWorkspace(workspacePath)
@@ -47,23 +46,18 @@ export async function handleSendPath(
     outputChannel.info(`[sendPath] Sending to port ${port}, cwd: ${workspaceDir}`);
     outputChannel.debug(`[sendPath] Content: "${paths}"`);
 
-    const result = await openCodeClient.appendPrompt(paths);
-    outputChannel.debug(`[sendPath] Result: ${result}`);
+    await openCodeClient.appendPrompt(paths);
 
     const count = resources.length;
     showTransientNotification(`Sent ${count} path${count > 1 ? 's' : ''}`);
 
     const configManager = connectionService.getConfigManager();
     if (configManager.getAutoFocusTerminal()) {
-      outputChannel.debug(`[sendPath] Auto-focus enabled, attempting to focus terminal`);
       try {
-        const focused = await connectionService.focusTerminal();
-        outputChannel.debug(`[sendPath] Terminal focus result: ${focused}`);
+        await connectionService.focusTerminal();
       } catch (err) {
         outputChannel.warn(`[sendPath] Terminal focus error: ${(err as Error).message}`);
       }
-    } else {
-      outputChannel.debug(`[sendPath] Auto-focus disabled in config`);
     }
   } catch (err) {
     await vscode.window.showErrorMessage(`Failed to send paths: ${(err as Error).message}`);

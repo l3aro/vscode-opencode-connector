@@ -17,7 +17,6 @@ export async function handleAddSelectionToPrompt(
     return;
   }
 
-  // Connect to the OpenCode instance that serves the active file's workspace.
   const activeEditor = vscode.window.activeTextEditor;
   const workspacePath = activeEditor
     ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)?.uri.fsPath
@@ -41,27 +40,19 @@ export async function handleAddSelectionToPrompt(
   try {
     const port = openCodeClient.getPort();
     const workspaceDir = workspacePath ?? 'unknown';
-    outputChannel.info(`[addSelectionToPrompt] Sending to port ${port}, cwd: ${workspaceDir}`);
-    outputChannel.debug(`[addSelectionToPrompt] Content: "${ref}"`);
+    outputChannel.info(`Sending to port ${port}, cwd: ${workspaceDir}`);
+    outputChannel.debug(`Content: "${ref}"`);
     const result = await openCodeClient.appendPrompt(ref);
-    outputChannel.debug(`[addSelectionToPrompt] Result: ${result}`);
+    outputChannel.debug(`Result: ${result}`);
     showTransientNotification(`Sent: ${ref}`);
 
-    const configManager = connectionService.getConfigManager();
-    if (configManager.getAutoFocusTerminal()) {
-      outputChannel.debug(
-        `[addSelectionToPrompt] Auto-focus enabled, attempting to focus terminal`
-      );
+    if (connectionService.getConfigManager().getAutoFocusTerminal()) {
       try {
         const focused = await connectionService.focusTerminal();
-        outputChannel.debug(`[addSelectionToPrompt] Terminal focus result: ${focused}`);
+        outputChannel.debug(`Terminal focus result: ${focused}`);
       } catch (err) {
-        outputChannel.warn(
-          `[addSelectionToPrompt] Terminal focus error: ${(err as Error).message}`
-        );
+        outputChannel.warn(`Terminal focus error: ${(err as Error).message}`);
       }
-    } else {
-      outputChannel.debug(`[addSelectionToPrompt] Auto-focus disabled in config`);
     }
   } catch (err) {
     await vscode.window.showErrorMessage(`Failed to send selection: ${(err as Error).message}`);

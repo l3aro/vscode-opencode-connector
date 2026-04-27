@@ -26,7 +26,6 @@ export function isDirectory(filePath: string): boolean {
  * @returns Formatted path string with @ prefix and trailing slash for directories
  */
 export function formatAbsolutePath(fsPath: string): string {
-  // Normalize all path separators to forward slashes for cross-platform consistency
   let formatted = '@' + fsPath.replace(/\\/g, '/');
   if (isDirectory(fsPath)) {
     formatted += '/';
@@ -51,7 +50,6 @@ export function formatPaths(resources: { fsPath: string }[]): string {
  * @returns Formatted path string with @ prefix and trailing slash for directories
  */
 export function formatRelativePath(relativePath: string, isDir: boolean): string {
-  // Normalize all path separators to forward slashes for cross-platform consistency
   let formatted = '@' + relativePath.replace(/\\/g, '/');
   if (isDir) {
     formatted += '/';
