@@ -13,7 +13,7 @@ export async function handleAddSelectionToPrompt(
 ): Promise<void> {
   const ref = WorkspaceUtils.getActiveFileRef();
   if (!ref) {
-    await vscode.window.showWarningMessage('No active file or selection to reference');
+    await vscode.window.showWarningMessage('OpenCode: No active file or selection to reference');
     return;
   }
 
@@ -40,7 +40,7 @@ export async function handleAddSelectionToPrompt(
 
   try {
     const port = openCodeClient.getPort();
-    const workspaceDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || 'unknown';
+    const workspaceDir = workspacePath ?? 'unknown';
     outputChannel.info(`[addSelectionToPrompt] Sending to port ${port}, cwd: ${workspaceDir}`);
     outputChannel.debug(`[addSelectionToPrompt] Content: "${ref}"`);
     const result = await openCodeClient.appendPrompt(ref);

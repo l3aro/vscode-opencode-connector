@@ -552,13 +552,13 @@ export function normalizePath(p: string): string {
  * @returns true if paths refer to the same directory
  */
 export function pathsMatch(serverPath: string, localPath: string): boolean {
-  const normalizedServer = normalizePath(serverPath);
-  const normalizedLocal = normalizePath(localPath);
-
   // Handle empty input paths - return false
   if (!serverPath || !localPath) {
     return false;
   }
+
+  const normalizedServer = normalizePath(serverPath);
+  const normalizedLocal = normalizePath(localPath);
 
   // On case-insensitive filesystems (Windows, macOS), use case-insensitive comparison
   const isCaseSensitive = process.platform !== 'win32' && process.platform !== 'darwin';

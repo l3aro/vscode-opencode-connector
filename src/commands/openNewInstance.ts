@@ -62,6 +62,7 @@ export async function openOpencodeForWorkspace(
 
           // Instance is running but no tracked terminal — open a new editor-tab
           // terminal that re-attaches to the existing port
+          // (if the process is orphaned from a disposed terminal, spawning creates a duplicate)
           outputChannel.info(
             `[openOpencodeForWorkspace] No tracked terminal for port ${existingPort}, opening editor tab`
           );
