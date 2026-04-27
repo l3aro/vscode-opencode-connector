@@ -49,12 +49,16 @@ export async function handleAddSelectionToPrompt(
 
     const configManager = connectionService.getConfigManager();
     if (configManager.getAutoFocusTerminal()) {
-      outputChannel.debug(`[addSelectionToPrompt] Auto-focus enabled, attempting to focus terminal`);
+      outputChannel.debug(
+        `[addSelectionToPrompt] Auto-focus enabled, attempting to focus terminal`
+      );
       try {
         const focused = await connectionService.focusTerminal();
         outputChannel.debug(`[addSelectionToPrompt] Terminal focus result: ${focused}`);
       } catch (err) {
-        outputChannel.warn(`[addSelectionToPrompt] Terminal focus error: ${(err as Error).message}`);
+        outputChannel.warn(
+          `[addSelectionToPrompt] Terminal focus error: ${(err as Error).message}`
+        );
       }
     } else {
       outputChannel.debug(`[addSelectionToPrompt] Auto-focus disabled in config`);

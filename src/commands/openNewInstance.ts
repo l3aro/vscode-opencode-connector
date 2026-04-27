@@ -89,9 +89,7 @@ export async function openOpencodeForWorkspace(
         vscode.window.setStatusBarMessage(`$(check) OpenCode started on port ${port}`, 4000);
       } catch (err) {
         outputChannel.error(`[openOpencodeForWorkspace] Failed: ${(err as Error).message}`);
-        await vscode.window.showErrorMessage(
-          `Failed to open OpenCode: ${(err as Error).message}`
-        );
+        await vscode.window.showErrorMessage(`Failed to open OpenCode: ${(err as Error).message}`);
       }
     }
   );

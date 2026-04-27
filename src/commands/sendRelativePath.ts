@@ -53,7 +53,8 @@ export async function handleSendRelativePath(
 
   try {
     const port = openCodeClient.getPort();
-    const workspaceDir = workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'unknown';
+    const workspaceDir =
+      workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'unknown';
     const paths = formatRelativePaths(resources);
 
     outputChannel.info(`[sendRelativePath] Sending to port ${port}, cwd: ${workspaceDir}`);

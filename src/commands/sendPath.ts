@@ -40,7 +40,8 @@ export async function handleSendPath(
 
   try {
     const port = openCodeClient.getPort();
-    const workspaceDir = workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'unknown';
+    const workspaceDir =
+      workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'unknown';
     const paths = formatPaths(resources);
 
     outputChannel.info(`[sendPath] Sending to port ${port}, cwd: ${workspaceDir}`);

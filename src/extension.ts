@@ -210,7 +210,7 @@ function registerCommands(): void {
   // Open in OpenCode — Explorer context menu (right-click file or folder)
   const openInOpencodeCommand = vscode.commands.registerCommand(
     'opencodeConnector.openInOpencode',
-    async (uri: vscode.Uri, _selectedUris: vscode.Uri[]) => {
+    async (uri: vscode.Uri) => {
       // uri is the right-clicked item; fall back to active editor if somehow undefined
       const target = uri ?? vscode.window.activeTextEditor?.document.uri;
       if (target) {
