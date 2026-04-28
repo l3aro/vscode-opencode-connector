@@ -32,66 +32,81 @@ let extensionContext: vscode.ExtensionContext | undefined;
 let statusBarManager: StatusBarManager | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 
-/**
- * Called when the extension is activated.
- * @param extensionUri - The URI of the extension's directory
- * @param context - The extension context
- */
 export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
   extensionContext = context;
 
-  outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
-  context.subscriptions.push(outputChannel);
-  outputChannel.info('OpenCode Connector extension is now active');
+  try {
+    outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
+    context?.subscriptions?.push(outputChannel);
+    outputChannel?.info('OpenCode Connector extension is now active');
+  } catch (err) {
+    console.error('Failed to create output channel:', err);
+  }
 
-  configManager = ConfigManager.getInstance(extensionUri);
-  const instanceManager = InstanceManager.getInstance(configManager);
+  try {
+    configManager = ConfigManager.getInstance(extensionUri);
 
-  instanceManager.setLogger({
-    info: (msg: string) => outputChannel!.info(msg),
-    warn: (msg: string) => outputChannel!.warn(msg),
-    error: (msg: string) => outputChannel!.error(msg),
-  });
+    const instanceManager = InstanceManager.getInstance(configManager);
 
-  connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
-
-  statusBarManager = StatusBarManager.getInstance();
-  statusBarManager.initialize(context);
-
-  const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
-    statusBarManager!.updateConnectionStatus(event.connected, event.port);
-  });
-  extensionContext.subscriptions.push(connectionStateSub);
-
-  registerCommands();
-
-  const codeActionProvider = vscode.languages.registerCodeActionsProvider(
-    '*',
-    new OpenCodeCodeActionProvider(),
-    {
-      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+    if (outputChannel) {
+      const channel = outputChannel;
+      instanceManager.setLogger({
+        info: (msg: string) => channel.info(msg),
+        warn: (msg: string) => channel.warn(msg),
+        error: (msg: string) => channel.error(msg),
+      });
     }
-  );
-  extensionContext.subscriptions.push(codeActionProvider);
 
-  registerWorkspaceHandlers();
+    // Initialize connection service
+    connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
 
-  connectionService
-    .discoverAndConnect()
-    .then(connected => {
-      statusBarManager!.updateConnectionStatus(connected, connectionService!.getPort());
-    })
-    .catch(() => {
-      statusBarManager!.updateConnectionStatus(false);
+    // Initialize status bar manager for connection status
+    statusBarManager = StatusBarManager.getInstance();
+    statusBarManager.initialize(context);
+
+    // Subscribe to connection state changes FIRST (before other init that might fail)
+    const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
+      statusBarManager?.updateConnectionStatus(event.connected, event.port);
     });
+    extensionContext?.subscriptions?.push(connectionStateSub);
 
-  outputChannel.info(
-    'OpenCode Connector fully initialized' +
-      (isRemoteSession() ? ` [Remote: ${vscode.env.remoteName}]` : ' [Local]')
-  );
+    registerCommands();
+
+    const codeActionProvider = vscode.languages.registerCodeActionsProvider(
+      '*',
+      new OpenCodeCodeActionProvider(),
+      {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+      }
+    );
+    extensionContext?.subscriptions?.push(codeActionProvider);
+
+    registerWorkspaceHandlers();
+
+    // Discover and connect in background
+    connectionService
+      .discoverAndConnect()
+      .then(connected => {
+        statusBarManager?.updateConnectionStatus(connected, connectionService?.getPort());
+      })
+      .catch(() => {
+        statusBarManager?.updateConnectionStatus(false);
+      });
+
+    outputChannel?.info(
+      'OpenCode Connector fully initialized' +
+        (isRemoteSession() ? ` [Remote: ${vscode.env.remoteName}]` : ' [Local]')
+    );
+  } catch (err) {
+    outputChannel?.error(`Failed to initialize OpenCode Connector: ${(err as Error).message}`);
+  }
 }
 
-function registerCommands(): void {
+export function registerCommands(): void {
+  if (!connectionService || !outputChannel) {
+    return;
+  }
+
   const statusCommand = vscode.commands.registerCommand(
     'opencodeConnector.checkInstance',
     async () => handleCheckInstance(connectionService!)
@@ -170,7 +185,7 @@ function registerCommands(): void {
     }
   );
 
-  extensionContext!.subscriptions.push(
+  extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
@@ -186,31 +201,35 @@ function registerCommands(): void {
   );
 }
 
-function registerWorkspaceHandlers(): void {
+export function registerWorkspaceHandlers(): void {
   const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(() => {
     const workspaceInfo = WorkspaceUtils.detectWorkspace();
-    outputChannel!.info(
+    outputChannel?.info(
       `Workspace changed: ${workspaceInfo.rootCount} root(s), primary: ${workspaceInfo.primaryRoot?.name || 'none'}`
     );
     DefaultInstanceManager.getInstance().clearDefault();
-    outputChannel!.info('Cleared default instance due to workspace change');
+    outputChannel?.info('Cleared default instance due to workspace change');
   });
 
   const configChange = vscode.workspace.onDidChangeConfiguration(event => {
     if (event.affectsConfiguration('opencode')) {
-      outputChannel!.info('OpenCode configuration changed');
+      outputChannel?.info('OpenCode configuration changed');
     }
   });
 
-  extensionContext!.subscriptions.push(workspaceFoldersChange, configChange);
+  extensionContext?.subscriptions?.push(workspaceFoldersChange, configChange);
 }
 
 export function deactivate(): void {
   outputChannel?.info('OpenCode Connector extension is now deactivated');
 
-  const client = connectionService?.getClient();
-  client?.destroy();
-  connectionService = undefined;
+  if (connectionService) {
+    const client = connectionService.getClient();
+    if (client) {
+      client.destroy();
+    }
+    connectionService = undefined;
+  }
 
   InstanceManager.resetInstance();
   configManager = undefined;
