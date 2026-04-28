@@ -34,7 +34,6 @@ export async function handleSendRelativePath(
     return;
   }
 
-  // Use the workspace of the first selected resource to route to the correct instance.
   const workspacePath = vscode.workspace.getWorkspaceFolder(resources[0])?.uri.fsPath;
   const connected = workspacePath
     ? await connectionService.ensureConnectedForWorkspace(workspacePath)
@@ -53,29 +52,25 @@ export async function handleSendRelativePath(
 
   try {
     const port = openCodeClient.getPort();
-    const workspaceDir = workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'unknown';
+    const workspaceDir =
+      workspacePath ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? 'unknown';
     const paths = formatRelativePaths(resources);
 
-    outputChannel.info(`[sendRelativePath] Sending to port ${port}, cwd: ${workspaceDir}`);
-    outputChannel.debug(`[sendRelativePath] Content: "${paths}"`);
+    outputChannel.info(`Sending to port ${port}, cwd: ${workspaceDir}`);
+    outputChannel.debug(`Content: "${paths}"`);
 
     const result = await openCodeClient.appendPrompt(paths);
-    outputChannel.debug(`[sendRelativePath] Result: ${result}`);
+    outputChannel.debug(`Result: ${result}`);
 
     const count = resources.length;
     showTransientNotification(`Sent ${count} relative path${count > 1 ? 's' : ''}`);
 
-    const configManager = connectionService.getConfigManager();
-    if (configManager.getAutoFocusTerminal()) {
-      outputChannel.debug(`[sendRelativePath] Auto-focus enabled, attempting to focus terminal`);
+    if (connectionService.getConfigManager().getAutoFocusTerminal()) {
       try {
-        const focused = await connectionService.focusTerminal();
-        outputChannel.debug(`[sendRelativePath] Terminal focus result: ${focused}`);
+        await connectionService.focusTerminal();
       } catch (err) {
-        outputChannel.warn(`[sendRelativePath] Terminal focus error: ${(err as Error).message}`);
+        outputChannel.warn(`Terminal focus error: ${(err as Error).message}`);
       }
-    } else {
-      outputChannel.debug(`[sendRelativePath] Auto-focus disabled in config`);
     }
   } catch (err) {
     await vscode.window.showErrorMessage(`Failed to send paths: ${(err as Error).message}`);

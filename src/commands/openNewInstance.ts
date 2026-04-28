@@ -3,10 +3,6 @@ import { InstanceManager } from '../instance/instanceManager';
 
 import * as vscode from 'vscode';
 
-/**
- * Resolve the workspace folder for the currently active editor file.
- * Falls back to the first workspace folder if no editor is active.
- */
 function resolveActiveWorkspace(): vscode.WorkspaceFolder | undefined {
   const activeEditor = vscode.window.activeTextEditor;
 
@@ -21,11 +17,8 @@ function resolveActiveWorkspace(): vscode.WorkspaceFolder | undefined {
 }
 
 /**
- * Core logic: given a resolved workspace path, find an existing OpenCode instance
- * or spawn a new one, always opening it as an editor tab.
- *
- * Used by both `handleOpenNewInstance` (from the editor title button) and
- * `handleOpenInOpencode` (from the Explorer context menu).
+ * Find or spawn an OpenCode instance for the given workspace path,
+ * opening it as an editor tab.
  */
 export async function openOpencodeForWorkspace(
   workspacePath: string,
@@ -41,11 +34,9 @@ export async function openOpencodeForWorkspace(
     },
     async () => {
       try {
-        // Check for an existing OpenCode process that serves this workspace
         const existingPort = await connectionService.findPortForWorkspace(workspacePath);
 
         if (existingPort !== undefined) {
-          // Try to show the tracked terminal (we already know about it)
           const trackedTerminal = instanceManager.getTerminalForPort(existingPort);
 
           if (trackedTerminal) {
@@ -60,8 +51,6 @@ export async function openOpencodeForWorkspace(
             return;
           }
 
-          // Instance is running but no tracked terminal — open a new editor-tab
-          // terminal that re-attaches to the existing port
           outputChannel.info(
             `[openOpencodeForWorkspace] No tracked terminal for port ${existingPort}, opening editor tab`
           );
@@ -76,7 +65,6 @@ export async function openOpencodeForWorkspace(
           return;
         }
 
-        // No existing instance — spawn a fresh one for this workspace
         outputChannel.info(
           `[openOpencodeForWorkspace] No existing instance for "${workspacePath}", spawning new one`
         );
@@ -89,17 +77,14 @@ export async function openOpencodeForWorkspace(
         vscode.window.setStatusBarMessage(`$(check) OpenCode started on port ${port}`, 4000);
       } catch (err) {
         outputChannel.error(`[openOpencodeForWorkspace] Failed: ${(err as Error).message}`);
-        await vscode.window.showErrorMessage(
-          `Failed to open OpenCode: ${(err as Error).message}`
-        );
+        await vscode.window.showErrorMessage(`Failed to open OpenCode: ${(err as Error).message}`);
       }
     }
   );
 }
 
 /**
- * Handle the "Open New Instance" editor title button command.
- * Detects the workspace from the active editor file and delegates to openOpencodeForWorkspace.
+ * Handle the "Open New Instance" command from the editor title button.
  */
 export async function handleOpenNewInstance(
   connectionService: ConnectionService,

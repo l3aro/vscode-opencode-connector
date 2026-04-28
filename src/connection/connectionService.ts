@@ -6,9 +6,6 @@ import { InstanceManager } from '../instance/instanceManager';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-/**
- * Logger interface for output channel
- */
 interface Logger {
   debug(message: string): void;
   info(message: string): void;
@@ -16,9 +13,6 @@ interface Logger {
   error(message: string): void;
 }
 
-/**
- * Connection state change event
- */
 export interface ConnectionStateEvent {
   connected: boolean;
   port?: number;
@@ -37,7 +31,6 @@ export class ConnectionService {
   private instanceManager: InstanceManager;
   private outputChannel: Logger | undefined;
 
-  // Event emitter for connection state changes
   private _onDidChangeConnectionState = new vscode.EventEmitter<ConnectionStateEvent>();
   public readonly onDidChangeConnectionState = this._onDidChangeConnectionState.event;
 
@@ -68,56 +61,34 @@ export class ConnectionService {
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       if (attempt > 1) {
-        this.outputChannel?.info(
-          `[discoverAndConnect] Retry ${attempt}/${retries} after ${delayMs}ms delay...`
-        );
+        this.outputChannel?.info(`Retry ${attempt}/${retries} after ${delayMs}ms`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
 
-      // Scan for running opencode processes
       const processes = await this.instanceManager.scanForProcesses();
       this.outputChannel?.info(
-        `[discoverAndConnect] Attempt ${attempt}: Found ${processes.length} OpenCode process(es): ${processes.map(p => p.port).join(', ')}`
+        `Attempt ${attempt}: Found ${processes.length} OpenCode process(es): ${processes.map(p => p.port).join(', ')}`
       );
 
       if (processes.length === 0) {
-        // No processes found, try again (server may be starting)
         continue;
       }
 
-      // Deduplicate ports
       const uniquePorts = [...new Set(processes.map(p => p.port))];
-
-      // Track if any process matched our workspace
       let foundMatchingProcess = false;
 
-      // For each port, verify it's an OpenCode server serving our directory
       for (const port of uniquePorts) {
         try {
-          this.outputChannel?.debug(`[discoverAndConnect] Checking port ${port}...`);
           const tempClient = new OpenCodeClient({ port, timeout: 3000, maxRetries: 0 });
           const pathInfo = await tempClient.getPath();
           tempClient.destroy();
 
           this.outputChannel?.debug(
-            `[discoverAndConnect] Port ${port} server dir: "${pathInfo.directory}" vs workspace: "${workspaceDir}"`
-          );
-          this.outputChannel?.debug(`[discoverAndConnect] process.cwd(): "${process.cwd()}"`);
-
-          const matches = pathsMatch(pathInfo.directory, workspaceDir);
-          this.outputChannel?.debug(`[discoverAndConnect] Paths match: ${matches}`);
-
-          this.outputChannel?.debug(
-            `[discoverAndConnect] Normalized server: "${normalizePath(pathInfo.directory)}"`
-          );
-          this.outputChannel?.debug(
-            `[discoverAndConnect] Normalized workspace: "${normalizePath(workspaceDir)}"`
+            `Port ${port} server dir: "${pathInfo.directory}" vs workspace: "${workspaceDir}"`
           );
 
-          // Normalize paths for comparison (platform-aware)
-          if (matches) {
+          if (pathsMatch(pathInfo.directory, workspaceDir)) {
             foundMatchingProcess = true;
-            // Found a match — update the global client
             if (this.connectedPort !== port) {
               if (this.client) {
                 this.client.destroy();
@@ -132,68 +103,37 @@ export class ConnectionService {
             return true;
           }
         } catch (err) {
-          // This port isn't a valid OpenCode server, skip
-          this.outputChannel?.warn(
-            `[discoverAndConnect] Port ${port} error: ${(err as Error).message}`
-          );
+          this.outputChannel?.warn(`Port ${port} error: ${(err as Error).message}`);
           continue;
         }
       }
 
-      // If processes were found but none matched our workspace, no point retrying
       if (!foundMatchingProcess) {
-        this.outputChannel?.info(
-          '[discoverAndConnect] Processes found but none match workspace, giving up'
-        );
+        this.outputChannel?.info('Processes found but none match workspace, giving up');
         break;
       }
     }
 
-    // Exhausted all retries
-    this.outputChannel?.info(
-      '[discoverAndConnect] No OpenCode processes found after retries, will attempt auto-spawn'
-    );
+    this.outputChannel?.info('No OpenCode processes found after retries, will attempt auto-spawn');
     return false;
   }
 
-  /**
-   * Wait for the OpenCode server to be ready on a specific port
-   * @param port - Port to check
-   * @param retries - Number of retry attempts (default: 30)
-   * @param delay - Delay between retries in ms (default: 1000)
-   * @returns true if server is ready, false if timeout
-   */
   async waitForServer(port: number, retries: number = 30, delay: number = 1000): Promise<boolean> {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        // Create a temporary client to test the server
         const tempClient = new OpenCodeClient({ port, timeout: 1000, maxRetries: 0 });
-
-        // Use getPath() as a health check (it tests the /path endpoint)
         await tempClient.getPath();
         tempClient.destroy();
-
-        // Server is ready
         return true;
       } catch {
-        // Server not ready yet, wait and retry
         if (attempt < retries) {
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
-
-    // Timeout - server never became ready
     return false;
   }
 
-  /**
-   * Scan running OpenCode processes and return the port of the one serving the
-   * given workspace path. Does NOT modify any internal state.
-   *
-   * @param workspacePath - Filesystem path of the target workspace folder
-   * @returns port number of the matching instance, or undefined if none found
-   */
   async findPortForWorkspace(workspacePath: string): Promise<number | undefined> {
     const processes = await this.instanceManager.scanForProcesses();
     const uniquePorts = [...new Set(processes.map(p => p.port))];
@@ -205,17 +145,15 @@ export class ConnectionService {
         tempClient.destroy();
 
         this.outputChannel?.debug(
-          `[findPortForWorkspace] Port ${port} → "${pathInfo.directory}" vs target "${workspacePath}"`
+          `Port ${port} → "${pathInfo.directory}" vs target "${workspacePath}"`
         );
 
         if (pathsMatch(pathInfo.directory, workspacePath)) {
-          this.outputChannel?.info(
-            `[findPortForWorkspace] Matched port ${port} for workspace "${workspacePath}"`
-          );
+          this.outputChannel?.info(`Matched port ${port} for workspace "${workspacePath}"`);
           return port;
         }
       } catch {
-        this.outputChannel?.debug(`[findPortForWorkspace] Port ${port} did not respond`);
+        this.outputChannel?.debug(`Port ${port} did not respond`);
       }
     }
 
@@ -223,34 +161,22 @@ export class ConnectionService {
   }
 
   /**
-   * Ensure we're connected to the OpenCode instance that serves the given workspace path.
-   *
-   * Priority:
-   *  1. Current client — if it already serves this workspace, reuse it (fast path).
-   *  2. Process scan via findPortForWorkspace — swap the internal client when a match is found
-   *     so the status bar reflects the correct connection.
-   *  3. Fallback — delegates to ensureConnected() (handles auto-spawn, configured-port, etc.).
-   *
-   * @param workspacePath - Filesystem path of the target workspace folder
-   * @returns true if connected to an instance serving this workspace (or any instance as fallback)
+   * Ensure connection to the OpenCode instance serving the given workspace path.
+   * Checks current client, scans for matching process, falls back to ensureConnected().
    */
   async ensureConnectedForWorkspace(workspacePath: string): Promise<boolean> {
-    this.outputChannel?.info(`[ensureConnectedForWorkspace] Target: "${workspacePath}"`);
+    this.outputChannel?.info(`Target workspace: "${workspacePath}"`);
 
-    // 1. Fast path: check whether the current client already serves this workspace
     if (this.client) {
       try {
         const alive = await this.client.testConnection();
         if (alive) {
           const pathInfo = await this.client.getPath();
           if (pathsMatch(pathInfo.directory, workspacePath)) {
-            this.outputChannel?.debug(
-              '[ensureConnectedForWorkspace] Current client already serves this workspace'
-            );
             return true;
           }
           this.outputChannel?.info(
-            `[ensureConnectedForWorkspace] Current client serves "${pathInfo.directory}", scanning for better match`
+            `Current client serves "${pathInfo.directory}", scanning for better match`
           );
         }
       } catch {
@@ -258,7 +184,6 @@ export class ConnectionService {
       }
     }
 
-    // 2. Scan for a process serving the target workspace
     const port = await this.findPortForWorkspace(workspacePath);
 
     if (port !== undefined) {
@@ -267,32 +192,24 @@ export class ConnectionService {
       }
       this.client = new OpenCodeClient({ port });
       this.connectedPort = port;
-      this.outputChannel?.info(
-        `[ensureConnectedForWorkspace] Switched to port ${port} for workspace "${workspacePath}"`
-      );
+      this.outputChannel?.info(`Switched to port ${port} for workspace "${workspacePath}"`);
       this._onDidChangeConnectionState.fire({ connected: true, port });
       return true;
     }
 
-    // 3. No workspace-specific instance found — fall back to generic connection
-    this.outputChannel?.info(
-      '[ensureConnectedForWorkspace] No matching instance found, falling back to ensureConnected()'
-    );
+    this.outputChannel?.info('No matching instance found, falling back to ensureConnected()');
     return this.ensureConnected();
   }
 
   /**
-   * Ensure we're connected to an OpenCode instance.
+   * Ensure connection to an OpenCode instance.
    * Tries: current client → auto-discovery → auto-spawn → configured port.
-   * @returns true if connected
    */
   async ensureConnected(): Promise<boolean> {
-    // 0. Check for default port from previous session
     const defaultPort = DefaultInstanceManager.getInstance().getDefaultPort();
     if (defaultPort !== undefined) {
       const isValid = await DefaultInstanceManager.getInstance().isValid();
       if (isValid) {
-        // Check if it serves the current workspace
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders && workspaceFolders.length > 0) {
           const currentWorkspaceDir = workspaceFolders[0].uri.fsPath;
@@ -306,7 +223,6 @@ export class ConnectionService {
             tempClient.destroy();
 
             if (pathsMatch(pathInfo.directory, currentWorkspaceDir)) {
-              // Default port is valid and serves current workspace - connect directly
               if (this.client) {
                 this.client.destroy();
               }
@@ -317,13 +233,11 @@ export class ConnectionService {
               this._onDidChangeConnectionState.fire({ connected: true, port: defaultPort });
               return true;
             }
-            // Default port is valid but serves different workspace - clear and continue
             this.outputChannel?.info(
               `Default instance on port ${defaultPort} serves different workspace, clearing`
             );
             DefaultInstanceManager.getInstance().clearDefault();
           } catch {
-            // Default port is valid but not responding to getPath - clear and continue
             this.outputChannel?.info(
               `Default instance on port ${defaultPort} not responding, clearing`
             );
@@ -331,18 +245,15 @@ export class ConnectionService {
           }
         }
       } else {
-        // Default port is not valid (no instance running) - clear and continue
         this.outputChannel?.info(`Default instance invalid, clearing`);
         DefaultInstanceManager.getInstance().clearDefault();
       }
     }
 
-    // 1. Check if current client is still alive AND serving the correct workspace
     if (this.client) {
       try {
         const connected = await this.client.testConnection();
         if (connected) {
-          // Client is alive — verify it's serving the current workspace
           const workspaceFolders = vscode.workspace.workspaceFolders;
           if (workspaceFolders && workspaceFolders.length > 0) {
             const currentWorkspaceDir = workspaceFolders[0].uri.fsPath;
@@ -351,7 +262,6 @@ export class ConnectionService {
               this._onDidChangeConnectionState.fire({ connected: true, port: this.connectedPort });
               return true;
             }
-            // Client is alive but serving wrong workspace — destroy and re-discover
             this.client.destroy();
             this.client = undefined;
             this.connectedPort = undefined;
@@ -362,31 +272,21 @@ export class ConnectionService {
       }
     }
 
-    // 2. Auto-discover from running processes
     const discovered = await this.discoverAndConnect();
     if (discovered) {
       this._onDidChangeConnectionState.fire({ connected: true, port: this.connectedPort });
       return true;
     }
 
-    // 3. Auto-spawn new instance if discovery failed
     this.lastAutoSpawnError = undefined;
     try {
-      // Find an available port
       const port = await this.instanceManager.findAvailablePort();
-
-      // Spawn in terminal
       await this.instanceManager.spawnInTerminal(port);
-
-      // Wait for server to be ready
       const serverReady = await this.waitForServer(port);
 
       if (serverReady) {
-        // Additional settling delay — the HTTP server responds before the TUI
-        // is fully initialized. Without this, the first appendPrompt is dropped.
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Update the client to use the new port
         if (this.client) {
           this.client.destroy();
         }
@@ -403,10 +303,8 @@ export class ConnectionService {
       }
     } catch (err) {
       this.lastAutoSpawnError = `Auto-spawn failed: ${(err as Error).message}`;
-      // Continue to fallback
     }
 
-    // 4. Fall back to configured port
     const port = this.configManager.getPort() ?? 4096;
     if (!this.client || this.client.getPort() !== port) {
       if (this.client) {
@@ -416,7 +314,6 @@ export class ConnectionService {
       this.connectedPort = port;
     }
 
-    // Test the fallback
     try {
       const connected = await this.client.testConnection();
       if (connected) {
@@ -428,75 +325,40 @@ export class ConnectionService {
     }
   }
 
-  /**
-   * Get the current OpenCodeClient instance
-   * @returns The current client or undefined
-   */
   getClient(): OpenCodeClient | undefined {
     return this.client;
   }
 
-  /**
-   * Get the currently connected port
-   * @returns The current port or undefined
-   */
   getPort(): number | undefined {
     return this.connectedPort;
   }
 
-  /**
-   * Get the last auto-spawn error message
-   * @returns Error message or undefined
-   */
   getLastAutoSpawnError(): string | undefined {
     return this.lastAutoSpawnError;
   }
 
-  /**
-   * Check if an OpenCode instance is running on a specific port
-   * @param port - Port to check
-   * @returns Result indicating if instance is running
-   */
   async getRunningInstance(port: number): Promise<{ isRunning: boolean; pid?: number }> {
     return this.instanceManager.getRunningInstance(port);
   }
 
-  /**
-   * Spawn a new OpenCode instance
-   * @param port - Port to run the instance on
-   * @returns Result indicating success or error
-   */
   async spawnInstance(port: number): Promise<{ success: boolean; error?: string }> {
     return this.instanceManager.spawnInstance(port);
   }
 
-  /**
-   * Get the InstanceManager instance
-   * @returns The instance manager
-   */
   getInstanceManager(): InstanceManager {
     return this.instanceManager;
   }
 
-  /**
-   * Get the ConfigManager instance
-   * @returns The config manager
-   */
   getConfigManager(): ConfigManager {
     return this.configManager;
   }
 
-  /**
-   * Focus the integrated terminal
-   * @returns true if successful
-   */
   async focusTerminal(): Promise<boolean> {
     return this.instanceManager.focusTerminal(this.connectedPort);
   }
 
   /**
    * Disconnect from the current OpenCode instance.
-   * Destroys the client and clears the connection state.
    */
   disconnect(): void {
     if (this.client) {
@@ -512,60 +374,33 @@ export class ConnectionService {
     this._onDidChangeConnectionState.dispose();
   }
 
-  /**
-   * Check if currently connected to an OpenCode instance.
-   * @returns true if connected
-   */
   isConnected(): boolean {
     return this.client !== undefined;
   }
 }
 
-/**
- * Check if running in a remote session (SSH, WSL, Containers, Dev Pods)
- * @returns true if running in a remote environment
- */
 export function isRemoteSession(): boolean {
   return vscode.env.remoteName !== undefined;
 }
 
-/**
- * Normalize a filesystem path for comparison.
- * @param p - Path to normalize
- * @returns Normalized path string
- */
 export function normalizePath(p: string): string {
-  // Resolve relative paths to absolute (handles "." and "./")
   let resolved = path.resolve(p);
-  // Normalize separators to platform default
   resolved = path.normalize(resolved);
-  // Remove trailing slashes
   resolved = resolved.replace(/[\\/]+$/, '');
   return resolved;
 }
 
-/**
- * Normalize and compare filesystem paths across platforms.
- * Handles: path separators, trailing slashes, remote path formats.
- * @param serverPath - Path returned by OpenCode server
- * @param localPath - Path from VSCode workspace
- * @returns true if paths refer to the same directory
- */
 export function pathsMatch(serverPath: string, localPath: string): boolean {
-  const normalizedServer = normalizePath(serverPath);
-  const normalizedLocal = normalizePath(localPath);
-
-  // Handle empty input paths - return false
   if (!serverPath || !localPath) {
     return false;
   }
 
-  // On case-insensitive filesystems (Windows, macOS), use case-insensitive comparison
+  const normalizedServer = normalizePath(serverPath);
+  const normalizedLocal = normalizePath(localPath);
+
   const isCaseSensitive = process.platform !== 'win32' && process.platform !== 'darwin';
 
-  // Check if parent is a parent directory (or equal) to child
   const isParentOrEqual = (parent: string, child: string): boolean => {
-    // Root / or empty should not match anything
     if (!parent || parent === '/') {
       return false;
     }
@@ -573,7 +408,6 @@ export function pathsMatch(serverPath: string, localPath: string): boolean {
     let parentToCheck = parent;
     let childToCheck = child;
 
-    // For case-insensitive platforms, compare in lowercase
     if (!isCaseSensitive) {
       parentToCheck = parentToCheck.toLowerCase();
       childToCheck = childToCheck.toLowerCase();
@@ -586,7 +420,6 @@ export function pathsMatch(serverPath: string, localPath: string): boolean {
     return false;
   };
 
-  // Bidirectional parent/child check
   if (
     isParentOrEqual(normalizedServer, normalizedLocal) ||
     isParentOrEqual(normalizedLocal, normalizedServer)
@@ -594,7 +427,6 @@ export function pathsMatch(serverPath: string, localPath: string): boolean {
     return true;
   }
 
-  // Exact match check
   if (isCaseSensitive) {
     return normalizedServer === normalizedLocal;
   }
