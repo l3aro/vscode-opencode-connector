@@ -8,3 +8,5 @@ temp/**
 nul
 research/**
 .atl/**
+.opencode/**
+graphify-out/**
