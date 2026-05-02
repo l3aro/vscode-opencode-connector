@@ -37,9 +37,9 @@ describe('sendPath utilities', () => {
       expect(result).toBe('@/home/user/project/src/index.ts');
     });
 
-    it('should add @ prefix and trailing slash for directories', () => {
+    it('should add @ prefix and trailing separator for directories', () => {
       const result = formatAbsolutePath('/home/user/project/src');
-      expect(result).toBe('@/home/user/project/src/');
+      expect(result).toBe('@/home/user/project/src' + path.sep);
     });
   });
 
@@ -50,10 +50,10 @@ describe('sendPath utilities', () => {
       expect(result).toBe('@/home/user/project/src/index.ts');
     });
 
-    it('should add @ prefix and trailing slash for directories', () => {
+    it('should add @ prefix and trailing separator for directories', () => {
       const resources = [{ fsPath: '/home/user/project/src' }];
       const result = formatPaths(resources);
-      expect(result).toBe('@/home/user/project/src/');
+      expect(result).toBe('@/home/user/project/src' + path.sep);
     });
 
     it('should separate multiple paths with newlines', () => {
@@ -71,7 +71,9 @@ describe('sendPath utilities', () => {
         { fsPath: '/home/user/project/src/utils' },
       ];
       const result = formatPaths(resources);
-      expect(result).toBe('@/home/user/project/src/index.ts\n@/home/user/project/src/utils/');
+      expect(result).toBe(
+        '@/home/user/project/src/index.ts\n@/home/user/project/src/utils' + path.sep
+      );
     });
 
     it('should handle empty array', () => {
@@ -93,9 +95,9 @@ describe('sendPath utilities', () => {
       expect(result).toBe('@src/index.ts');
     });
 
-    it('should add @ prefix and trailing slash for relative directories', () => {
+    it('should add @ prefix and trailing separator for relative directories', () => {
       const result = formatRelativePath('src', true);
-      expect(result).toBe('@src/');
+      expect(result).toBe('@src' + path.sep);
     });
 
     it('should handle nested paths', () => {

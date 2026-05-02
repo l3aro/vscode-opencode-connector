@@ -22,13 +22,16 @@ export function isDirectory(filePath: string): boolean {
 
 /**
  * Format an absolute path for sending to OpenCode
+ * Uses OS-native path separators (\ on Windows, / on Unix).
  * @param fsPath - The absolute file system path
- * @returns Formatted path string with @ prefix and trailing slash for directories
+ * @returns Formatted path string with @ prefix and trailing OS-native separator for directories
  */
 export function formatAbsolutePath(fsPath: string): string {
-  let formatted = '@' + fsPath.replace(/\\/g, '/');
+  // path.sep is OS-native: \ on Windows, / on Unix
+  const normalizedPath = fsPath.replace(/\\/g, path.sep);
+  let formatted = '@' + normalizedPath;
   if (isDirectory(fsPath)) {
-    formatted += '/';
+    formatted += path.sep;
   }
   return formatted;
 }
@@ -36,7 +39,7 @@ export function formatAbsolutePath(fsPath: string): string {
 /**
  * Format paths for sending to OpenCode
  * @param resources - Array of VS Code URIs
- * @returns Formatted path string with @ prefix and trailing slashes for directories
+ * @returns Formatted path string with @ prefix and trailing OS-native separator for directories
  */
 export function formatPaths(resources: { fsPath: string }[]): string {
   const paths = resources.map(uri => formatAbsolutePath(uri.fsPath));
@@ -45,14 +48,17 @@ export function formatPaths(resources: { fsPath: string }[]): string {
 
 /**
  * Format a relative path for sending to OpenCode
+ * Uses OS-native path separators (\ on Windows, / on Unix).
  * @param relativePath - The relative path
  * @param isDir - Whether the path is a directory
- * @returns Formatted path string with @ prefix and trailing slash for directories
+ * @returns Formatted path string with @ prefix and trailing OS-native separator for directories
  */
 export function formatRelativePath(relativePath: string, isDir: boolean): string {
-  let formatted = '@' + relativePath.replace(/\\/g, '/');
+  // path.sep is OS-native: \ on Windows, / on Unix
+  const normalizedPath = relativePath.replace(/\\/g, path.sep);
+  let formatted = '@' + normalizedPath;
   if (isDir) {
-    formatted += '/';
+    formatted += path.sep;
   }
   return formatted;
 }
