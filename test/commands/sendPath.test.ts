@@ -71,7 +71,9 @@ describe('sendPath utilities', () => {
         { fsPath: '/home/user/project/src/utils' },
       ];
       const result = formatPaths(resources);
-      expect(result).toBe('@/home/user/project/src/index.ts\n@/home/user/project/src/utils' + path.sep);
+      expect(result).toBe(
+        '@/home/user/project/src/index.ts\n@/home/user/project/src/utils' + path.sep
+      );
     });
 
     it('should handle empty array', () => {
