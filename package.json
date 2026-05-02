@@ -8,7 +8,7 @@
     "url": "https://github.com/l3aro/vscode-opencode-connector.git"
   },
   "icon": "resources/icon.png",
-  "version": "1.2.1",
+  "version": "1.3.2",
   "license": "MIT",
   "engines": {
     "vscode": "^1.94.0",
