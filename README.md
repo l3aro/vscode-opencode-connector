@@ -1,8 +1,10 @@
 # OpenCode Connector
 
-![VS Code Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/l3aro.opencode-connector?style=flat-square)
-![Open VSX Downloads](https://img.shields.io/open-vsx/dt/l3aro/opencode-connector?style=flat-square)
-![VS Code Version](https://img.shields.io/visual-studio-marketplace/v/l3aro.opencode-connector?style=flat-square)
+[![VS Code Marketplace Version](https://vsmarketplacebadges.dev/version/l3aro.opencode-connector.svg)](https://marketplace.visualstudio.com/items?itemName=l3aro.opencode-connector)
+[![VS Code Marketplace Downloads](https://vsmarketplacebadges.dev/downloads-short/l3aro.opencode-connector.svg)](https://marketplace.visualstudio.com/items?itemName=l3aro.opencode-connector)
+
+[![Open VSX Version](https://img.shields.io/open-vsx/v/l3aro/opencode-connector?style=flat)](https://open-vsx.org/extension/l3aro/opencode-connector)
+[![Open VSX Downloads](https://img.shields.io/open-vsx/dt/l3aro/opencode-connector?style=flat)](https://open-vsx.org/extension/l3aro/opencode-connector)
 
 **Bridge the gap between your favorite editor and your favorite AI assistant.**
 
