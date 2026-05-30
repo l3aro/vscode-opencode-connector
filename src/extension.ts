@@ -7,6 +7,7 @@ import {
   handleAddSelectionToPrompt,
   handleAddToPrompt,
   handleCheckInstance,
+  handleExplainAndFix,
   handleOpenInOpencode,
   handleOpenNewInstance,
   handleSelectDefaultInstance,
@@ -185,6 +186,13 @@ export function registerCommands(): void {
     }
   );
 
+  const explainAndFixCommand = vscode.commands.registerCommand(
+    'opencode.explainAndFix',
+    async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
+      await handleExplainAndFix(connectionService!, outputChannel!, diagnostic, uri);
+    }
+  );
+
   extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
@@ -197,7 +205,8 @@ export function registerCommands(): void {
     sendRelativePathCommand,
     addSelectionToPromptCommand,
     openNewInstanceCommand,
-    openInOpencodeCommand
+    openInOpencodeCommand,
+    explainAndFixCommand
   );
 }
 
