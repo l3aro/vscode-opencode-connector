@@ -69,6 +69,10 @@
         "icon": "$(terminal-tmux)"
       },
       {
+        "command": "opencode.explainAndFix",
+        "title": "Explain and Fix (OpenCode)"
+      },
+      {
         "command": "opencodeConnector.openInOpencode",
         "title": "Open in OpenCode",
         "icon": "$(terminal-tmux)"

@@ -7,6 +7,7 @@ import {
   handleAddSelectionToPrompt,
   handleAddToPrompt,
   handleCheckInstance,
+  handleExplainAndFix,
   handleOpenInOpencode,
   handleOpenNewInstance,
   handleSelectDefaultInstance,
@@ -185,6 +186,23 @@ export function registerCommands(): void {
     }
   );
 
+  const explainAndFixCommand = vscode.commands.registerCommand(
+    'opencode.explainAndFix',
+    async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
+      if (!diagnostic || !uri) {
+        outputChannel?.warn(
+          'Explain and Fix requires a diagnostic context. Run it from a code action on an editor diagnostic.'
+        );
+        await vscode.window.showInformationMessage(
+          'Explain and Fix works from a diagnostic quick fix. Place cursor on an issue and run the lightbulb action.'
+        );
+        return;
+      }
+
+      await handleExplainAndFix(connectionService!, outputChannel!, diagnostic, uri);
+    }
+  );
+
   extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
@@ -197,7 +215,8 @@ export function registerCommands(): void {
     sendRelativePathCommand,
     addSelectionToPromptCommand,
     openNewInstanceCommand,
-    openInOpencodeCommand
+    openInOpencodeCommand,
+    explainAndFixCommand
   );
 }
 
