@@ -11,7 +11,7 @@ import {
   OpenCodeServerError,
   OpenCodeUnavailableError,
 } from '../../src/api/errors';
-import { OpenCodeClient } from '../../src/api/openCodeClient';
+import { OpenCodeClient, getEventUrl } from '../../src/api/openCodeClient';
 
 // ---------------------------------------------------------------------------
 // Imports (resolved against mocks above)
@@ -164,6 +164,20 @@ describe('OpenCodeClient', () => {
     it('builds correct base URL', () => {
       const client = createClient({ host: '192.168.1.5', port: 8080 });
       expect(client.getBaseUrl()).toBe('http://192.168.1.5:8080');
+    });
+  });
+
+  // ===========================================================================
+  // getEventUrl
+  // ===========================================================================
+
+  describe('getEventUrl', () => {
+    it('builds the default event URL for the default runtime port', () => {
+      expect(getEventUrl()).toBe('http://127.0.0.1:4096/event');
+    });
+
+    it('builds the event URL for a provided runtime port', () => {
+      expect(getEventUrl(7777)).toBe('http://127.0.0.1:7777/event');
     });
   });
 

@@ -76,6 +76,10 @@
         "command": "opencodeConnector.openInOpencode",
         "title": "Open in OpenCode",
         "icon": "$(terminal-tmux)"
+      },
+      {
+        "command": "opencodeConnector.toggleNotifications",
+        "title": "OpenCode: Toggle Notifications"
       }
     ],
     "keybindings": [
@@ -137,6 +141,11 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically focus OpenCode terminal after sending prompts"
+        },
+        "opencode.notificationsEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show VS Code notifications when the active OpenCode runtime returns to idle after work"
         }
       }
     },

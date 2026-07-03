@@ -57,6 +57,15 @@ const DEFAULT_CONFIG: Required<OpenCodeClientConfig> = {
 };
 
 /**
+ * Build the OpenCode event-stream URL for a runtime port.
+ * @param port - Runtime port to target
+ * @returns Absolute SSE endpoint URL
+ */
+export function getEventUrl(port: number = DEFAULT_CONFIG.port): string {
+  return `http://${DEFAULT_CONFIG.host}:${port}/event`;
+}
+
+/**
  * OpenCode HTTP Client
  * Provides typed methods for communicating with OpenCode API
  */

@@ -44,6 +44,8 @@ export async function openOpencodeForWorkspace(
               `[openOpencodeForWorkspace] Focusing tracked terminal for port ${existingPort}`
             );
             trackedTerminal.show(false);
+            // Attach so status bar + notifications track this already-running instance.
+            await connectionService.connectToKnownPort(existingPort);
             vscode.window.setStatusBarMessage(
               `$(check) Resumed OpenCode on port ${existingPort}`,
               4000
@@ -58,6 +60,7 @@ export async function openOpencodeForWorkspace(
             cwd: workspacePath,
             asEditor: true,
           });
+          await connectionService.connectToKnownPort(existingPort);
           vscode.window.setStatusBarMessage(
             `$(check) Reconnected to OpenCode on port ${existingPort}`,
             4000
@@ -74,6 +77,9 @@ export async function openOpencodeForWorkspace(
           asEditor: true,
         });
         outputChannel.info(`[openOpencodeForWorkspace] New instance started on port ${port}`);
+        // Attach to the freshly spawned instance so the connection state fires and
+        // the notification listener arms on this known port (no discovery needed).
+        await connectionService.connectToKnownPort(port);
         vscode.window.setStatusBarMessage(`$(check) OpenCode started on port ${port}`, 4000);
       } catch (err) {
         outputChannel.error(`[openOpencodeForWorkspace] Failed: ${(err as Error).message}`);
