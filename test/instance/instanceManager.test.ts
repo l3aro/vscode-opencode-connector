@@ -4,8 +4,8 @@
 import { ConfigManager } from '../../src/config';
 import { InstanceManager, PlatformUtils } from '../../src/instance/instanceManager';
 
-import * as net from 'net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as vscode from 'vscode';
 
 vi.mock('vscode', () => ({
   workspace: {
@@ -22,7 +22,11 @@ vi.mock('vscode', () => ({
   },
   window: {
     terminals: [] as unknown[],
+    createTerminal: vi.fn(),
     onDidCloseTerminal: vi.fn(() => ({ dispose: vi.fn() })),
+  },
+  TerminalLocation: {
+    Editor: 1,
   },
 }));
 
@@ -48,6 +52,9 @@ describe('InstanceManager', () => {
     InstanceManager.resetInstance();
     mockConfigManager = createMockConfigManager(3000, 'opencode');
     instanceManager = InstanceManager.getInstance(mockConfigManager as unknown as ConfigManager);
+    vi.mocked(vscode.window.createTerminal).mockReset();
+    const terminals = vscode.window.terminals as vscode.Terminal[];
+    terminals.splice(0, terminals.length);
   });
 
   afterEach(() => {
@@ -104,6 +111,35 @@ describe('InstanceManager', () => {
       const testConfig = createMockConfigManager(port, 'opencode');
       const testManager = InstanceManager.getInstance(testConfig);
       expect(testManager.getPort()).toBe(port);
+    });
+  });
+
+  describe('attachToTerminal', () => {
+    it('opens an editor terminal with opencode attach instead of starting a duplicate server', async () => {
+      const sendText = vi.fn();
+      const show = vi.fn();
+      const terminal = {
+        name: 'OpenCode: test-workspace',
+        sendText,
+        show,
+      } as unknown as vscode.Terminal;
+      vi.mocked(vscode.window.createTerminal).mockReturnValueOnce(terminal);
+
+      const attachPromise = instanceManager.attachToTerminal(4096, {
+        cwd: '/workspace/app',
+        asEditor: true,
+      });
+      await attachPromise;
+
+      expect(vscode.window.createTerminal).toHaveBeenCalledWith({
+        name: expect.stringMatching(/^OpenCode: /),
+        cwd: '/workspace/app',
+        location: vscode.TerminalLocation.Editor,
+      });
+      expect(show).toHaveBeenCalledWith(false);
+      expect(sendText).toHaveBeenCalledWith('opencode attach http://127.0.0.1:4096');
+      expect(sendText).not.toHaveBeenCalledWith('opencode --port 4096');
+      expect(instanceManager.getTerminalForPort(4096)).toBe(terminal);
     });
   });
 });

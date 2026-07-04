@@ -54,7 +54,14 @@ export async function openOpencodeForWorkspace(
           }
 
           outputChannel.info(
-            `[openOpencodeForWorkspace] No tracked terminal for port ${existingPort}, attaching to existing instance`
+            `[openOpencodeForWorkspace] No tracked terminal for port ${existingPort}, opening editor tab`
+          );
+          await instanceManager.attachToTerminal(existingPort, {
+            cwd: workspacePath,
+            asEditor: true,
+          });
+          outputChannel.info(
+            `[openOpencodeForWorkspace] Attaching to existing instance on port ${existingPort}`
           );
           await connectionService.connectToKnownPort(existingPort);
           vscode.window.setStatusBarMessage(

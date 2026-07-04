@@ -587,24 +587,11 @@ export class InstanceManager {
     return this.portToTerminal.get(port);
   }
 
-  /**
-   * Spawn an OpenCode instance in a VSCode Integrated Terminal.
-   * @param port - Port number to use for the instance
-   * @param options - Optional spawn options (cwd, asEditor)
-   * @returns Promise<void>
-   */
-  public async spawnInTerminal(port: number, options?: SpawnTerminalOptions): Promise<void> {
+  private createTerminalOptions(options?: SpawnTerminalOptions): vscode.TerminalOptions {
     const workspacePath = options?.cwd ?? this.getWorkspacePath();
     const workspaceHash = WorkspaceUtils.getWorkspaceHash(workspacePath);
-    const terminalName = `OpenCode: ${workspaceHash}`;
-    const binaryPath = this.configManager.getBinaryPath() || 'opencode';
-    // Don't use getCommandWithExtension here — the integrated terminal shell
-    // resolves binaries via PATH naturally (handles .exe, aliases, etc.)
-    const fullCommand = `${binaryPath} --port ${port}`;
-
-    // Build terminal creation options
     const terminalCreationOptions: vscode.TerminalOptions = {
-      name: terminalName,
+      name: `OpenCode: ${workspaceHash}`,
       cwd: workspacePath,
     };
 
@@ -612,35 +599,60 @@ export class InstanceManager {
       terminalCreationOptions.location = vscode.TerminalLocation.Editor;
     }
 
-    // Check for existing terminal with the same name
-    const existingTerminal = vscode.window.terminals.find(t => t.name === terminalName);
+    return terminalCreationOptions;
+  }
+
+  private async openTerminalWithCommand(
+    port: number,
+    command: string,
+    options?: SpawnTerminalOptions
+  ): Promise<void> {
+    const terminalCreationOptions = this.createTerminalOptions(options);
+    const existingTerminal = vscode.window.terminals.find(
+      terminal => terminal.name === terminalCreationOptions.name
+    );
 
     if (existingTerminal) {
-      // Send Ctrl+C to stop any previous process
-      // On Windows, multiple Ctrl+C or a small delay might be needed
       existingTerminal.sendText('\x03');
-
-      // Small delay to ensure shell processes the interrupt
       await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Send the new command
-      existingTerminal.sendText(fullCommand);
-
-      // Track this terminal for the port
+      existingTerminal.sendText(command);
       this.portToTerminal.set(port, existingTerminal);
-    } else {
-      // Create a new terminal, make it visible and focused
-      const terminal = vscode.window.createTerminal(terminalCreationOptions);
-      terminal.show(false);
-
-      // Wait for shell to initialize before sending the command
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      terminal.sendText(fullCommand);
-
-      // Track this terminal for the port
-      this.portToTerminal.set(port, terminal);
+      return;
     }
+
+    const terminal = vscode.window.createTerminal(terminalCreationOptions);
+    terminal.show(false);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    terminal.sendText(command);
+    this.portToTerminal.set(port, terminal);
+  }
+
+  /**
+   * Attach a VS Code terminal to an already-running OpenCode server.
+   * @param port - Running OpenCode server port to attach to
+   * @param options - Optional terminal options (cwd, asEditor)
+   * @returns Promise<void>
+   */
+  public async attachToTerminal(port: number, options?: SpawnTerminalOptions): Promise<void> {
+    const binaryPath = this.configManager.getBinaryPath() || 'opencode';
+    await this.openTerminalWithCommand(
+      port,
+      `${binaryPath} attach http://127.0.0.1:${port}`,
+      options
+    );
+  }
+
+  /**
+   * Spawn an OpenCode instance in a VSCode Integrated Terminal.
+   * @param port - Port number to use for the instance
+   * @param options - Optional spawn options (cwd, asEditor)
+   * @returns Promise<void>
+   */
+  public async spawnInTerminal(port: number, options?: SpawnTerminalOptions): Promise<void> {
+    const binaryPath = this.configManager.getBinaryPath() || 'opencode';
+    // Don't use getCommandWithExtension here — the integrated terminal shell
+    // resolves binaries via PATH naturally (handles .exe, aliases, etc.)
+    await this.openTerminalWithCommand(port, `${binaryPath} --port ${port}`, options);
   }
 
   /**
