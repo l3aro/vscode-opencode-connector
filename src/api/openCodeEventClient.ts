@@ -124,7 +124,6 @@ export class OpenCodeEventClient {
   }
 
   private handleChunk(chunk: string): void {
-    this.logger.info(`Raw SSE chunk (${chunk.length} chars): ${JSON.stringify(chunk)}`);
     this.buffer += chunk;
 
     while (true) {
@@ -162,8 +161,6 @@ export class OpenCodeEventClient {
   }
 
   private emitFrame(rawFrame: string): void {
-    this.logger.info(`Raw SSE frame (${rawFrame.length} chars): ${JSON.stringify(rawFrame)}`);
-
     const lines = rawFrame.split(/\r?\n/);
     const data = lines
       .filter(line => line.startsWith('data:'))
@@ -177,13 +174,11 @@ export class OpenCodeEventClient {
         .trim() || 'message';
 
     if (!lines.some(line => line.startsWith('event:'))) {
-      this.logger.info(
-        `SSE frame omitted event line; defaulting to SSE event "message": ${JSON.stringify(rawFrame)}`
-      );
+      this.logger.info('SSE frame omitted event line; defaulting to SSE event "message"');
     }
 
     if (!data) {
-      this.logger.warn(`Ignoring SSE frame without data payload: ${JSON.stringify(rawFrame)}`);
+      this.logger.warn('Ignoring SSE frame without data payload');
       return;
     }
 
@@ -193,23 +188,17 @@ export class OpenCodeEventClient {
       const properties = parsed.properties;
 
       if (!domainType || typeof properties !== 'object' || properties === null) {
-        this.logger.warn(`Ignoring malformed SSE frame payload: ${JSON.stringify(parsed)}`);
+        this.logger.warn('Ignoring malformed SSE frame payload');
         return;
       }
 
-      this.logger.info(
-        `Parsed OpenCode event: ${JSON.stringify({
-          sseEvent: sseEventName,
-          type: domainType,
-          properties,
-        })}`
-      );
+      this.logger.info(`Parsed OpenCode event: sseEvent=${sseEventName} type=${domainType}`);
       this.callbacks.onEvent({
         type: domainType,
         properties: properties as Record<string, unknown>,
       });
     } catch {
-      this.logger.warn(`Ignoring malformed SSE frame: ${JSON.stringify(rawFrame)}`);
+      this.logger.warn('Ignoring malformed SSE frame');
     }
   }
 }

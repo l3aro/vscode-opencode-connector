@@ -9,7 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('OpenCodeEventClient', () => {
   let onEvent: ReturnType<typeof vi.fn>;
   let onDisconnect: ReturnType<typeof vi.fn>;
-  let createStream: ReturnType<typeof vi.fn<OpenCodeEventStreamFactory>>;
+  let createStream: ReturnType<
+    typeof vi.fn<Parameters<OpenCodeEventStreamFactory>, OpenCodeEventStreamConnection>
+  >;
   let logger: {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -83,9 +85,12 @@ describe('OpenCodeEventClient', () => {
         status: { type: 'busy' },
       },
     });
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Raw SSE chunk'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Raw SSE frame'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Parsed OpenCode event'));
+    expect(logger.info).toHaveBeenCalledWith(
+      'Parsed OpenCode event: sseEvent=message type=session.status'
+    );
+    expect(logger.info.mock.calls.flat().join('\n')).not.toContain('Raw SSE chunk');
+    expect(logger.info.mock.calls.flat().join('\n')).not.toContain('Raw SSE frame');
+    expect(logger.info.mock.calls.flat().join('\n')).not.toContain('session-1');
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Ignoring malformed SSE frame')
     );
@@ -140,7 +145,9 @@ describe('OpenCodeEventClient', () => {
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining('defaulting to SSE event "message"')
     );
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('"sseEvent":"message"'));
+    expect(logger.info).toHaveBeenCalledWith(
+      'Parsed OpenCode event: sseEvent=message type=session.status'
+    );
     expect(logger.warn.mock.calls.flat().join('\n')).not.toContain('without event line');
   });
 
