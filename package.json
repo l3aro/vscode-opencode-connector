@@ -21,6 +21,9 @@
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
   "contributes": {
     "commands": [
       {
@@ -80,6 +83,11 @@
       {
         "command": "opencodeConnector.toggleNotifications",
         "title": "OpenCode: Toggle Notifications"
+      },
+      {
+        "command": "opencodeConnector.pasteClipboardImage",
+        "title": "OpenCode: Paste Clipboard Image",
+        "icon": "$(file-media)"
       }
     ],
     "keybindings": [
@@ -117,6 +125,11 @@
           "type": "string",
           "default": "",
           "description": "Path to OpenCode binary"
+        },
+        "opencode.clipboardImageDirectory": {
+          "type": "string",
+          "default": ".opencode/clipboard-images",
+          "description": "Workspace-relative directory for pasted clipboard images. Keep this inside OpenCode's working directory and ignore it in Git."
         },
         "opencode.codeAction.severityLevels": {
           "type": "array",

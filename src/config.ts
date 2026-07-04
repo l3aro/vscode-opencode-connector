@@ -41,6 +41,15 @@ export class ConfigManager {
   }
 
   /**
+   * Get the workspace-relative directory used for pasted clipboard images.
+   * @returns Relative storage directory (default: '.opencode/clipboard-images')
+   */
+  public getClipboardImageDirectory(): string {
+    const config = vscode.workspace.getConfiguration('opencode');
+    return config.get<string>('clipboardImageDirectory') ?? '.opencode/clipboard-images';
+  }
+
+  /**
    * Get auto focus terminal setting.
    * @returns Whether to automatically focus the terminal when spawning OpenCode (default: true)
    */
@@ -95,6 +104,7 @@ export class ConfigManager {
     codeActionSeverityLevels: string[];
     autoFocusTerminal: boolean;
     notificationsEnabled: boolean;
+    clipboardImageDirectory: string;
   } {
     return {
       port: 4096,
@@ -102,6 +112,7 @@ export class ConfigManager {
       codeActionSeverityLevels: ['error', 'warning', 'information', 'hint'],
       autoFocusTerminal: true,
       notificationsEnabled: true,
+      clipboardImageDirectory: '.opencode/clipboard-images',
     };
   }
 
