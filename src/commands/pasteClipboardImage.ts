@@ -1,4 +1,5 @@
-import { ConnectionService } from '../connection/connectionService';
+import { ConnectionService, pathsMatch } from '../connection/connectionService';
+import type { PathResponse } from '../types';
 import { WorkspaceUtils } from '../utils/workspace';
 
 import { randomUUID } from 'crypto';
@@ -22,6 +23,10 @@ interface ClipboardImageMessage {
   readonly type: 'clipboardImage';
   readonly mimeType: string;
   readonly base64: string;
+}
+
+interface WorkspacePathClient {
+  getPath(): Promise<PathResponse>;
 }
 
 function isClipboardImageMessage(value: unknown): value is ClipboardImageMessage {
@@ -105,6 +110,18 @@ export function isStoredClipboardImageName(name: string, prefix: string): boolea
   return new RegExp(`^${escapedPrefix}\\d+-[0-9a-fA-F-]{36}\\.(${ImageExtensionPattern})$`).test(
     name
   );
+}
+
+export async function assertClientServesWorkspace(
+  client: WorkspacePathClient,
+  workspaceRoot: string
+): Promise<void> {
+  const pathInfo = await client.getPath();
+  if (!pathsMatch(pathInfo.directory, workspaceRoot)) {
+    throw new Error(
+      `Connected OpenCode instance serves "${pathInfo.directory}", not "${workspaceRoot}"`
+    );
+  }
 }
 
 async function pruneStoredImages(directory: vscode.Uri, filenamePrefix: string): Promise<void> {
@@ -219,6 +236,8 @@ export async function handlePasteClipboardImage(
       if (!workspaceRoot) {
         throw new Error('Open a workspace folder to paste clipboard images');
       }
+      await assertClientServesWorkspace(client, workspaceRoot);
+
       const configuredDirectory = connectionService.getConfigManager().getClipboardImageDirectory();
       const filenamePrefix = resolveClipboardImageFilenamePrefix(
         connectionService.getConfigManager().getClipboardImageFilenamePrefix()

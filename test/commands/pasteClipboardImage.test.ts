@@ -1,13 +1,25 @@
 import {
+  assertClientServesWorkspace,
   decodeClipboardImage,
   isStoredClipboardImageName,
   resolveClipboardImageDirectory,
   resolveClipboardImageFilenamePrefix,
 } from '../../src/commands/pasteClipboardImage';
+import type { PathResponse } from '../../src/types';
 
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('vscode', () => ({}));
+
+function createPathResponse(directory: string): PathResponse {
+  return {
+    home: '/home/user',
+    state: '/home/user/.local/state/opencode',
+    config: '/home/user/.config/opencode',
+    worktree: directory,
+    directory,
+  };
+}
 
 describe('decodeClipboardImage', () => {
   it('decodes a supported base64 image', () => {
@@ -98,5 +110,27 @@ describe('isStoredClipboardImageName', () => {
     expect(
       isStoredClipboardImageName(`other-${Date.now()}-${uuid}.png`, 'opencode-clipboard-')
     ).toBe(false);
+  });
+});
+
+describe('assertClientServesWorkspace', () => {
+  it('allows a client serving the target workspace', async () => {
+    const client = {
+      getPath: vi.fn(async () => createPathResponse('/workspace/project-a')),
+    };
+
+    await expect(assertClientServesWorkspace(client, '/workspace/project-a')).resolves.toBe(
+      undefined
+    );
+  });
+
+  it('rejects a client serving a different workspace', async () => {
+    const client = {
+      getPath: vi.fn(async () => createPathResponse('/workspace/project-a')),
+    };
+
+    await expect(assertClientServesWorkspace(client, '/workspace/project-b')).rejects.toThrow(
+      'not "/workspace/project-b"'
+    );
   });
 });
