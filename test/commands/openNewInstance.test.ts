@@ -73,7 +73,7 @@ describe('openOpencodeForWorkspace notification/connection wiring', () => {
     expect(connectionService.connectToKnownPort).toHaveBeenCalledWith(4096);
   });
 
-  it('attaches to an existing port without a tracked terminal after opening a tab', async () => {
+  it('attaches to an existing port without a tracked terminal without re-spawning', async () => {
     const { connectionService, instanceManager, outputChannel } = createDeps();
     connectionService.findPortForWorkspace.mockResolvedValueOnce(4096);
     instanceManager.getTerminalForPort.mockReturnValueOnce(undefined);
@@ -85,10 +85,7 @@ describe('openOpencodeForWorkspace notification/connection wiring', () => {
       outputChannel as never
     );
 
-    expect(instanceManager.spawnInTerminal).toHaveBeenCalledWith(4096, {
-      cwd: '/workspace/app',
-      asEditor: true,
-    });
+    expect(instanceManager.spawnInTerminal).not.toHaveBeenCalled();
     expect(connectionService.connectToKnownPort).toHaveBeenCalledWith(4096);
   });
 });

@@ -54,12 +54,8 @@ export async function openOpencodeForWorkspace(
           }
 
           outputChannel.info(
-            `[openOpencodeForWorkspace] No tracked terminal for port ${existingPort}, opening editor tab`
+            `[openOpencodeForWorkspace] No tracked terminal for port ${existingPort}, attaching to existing instance`
           );
-          await instanceManager.spawnInTerminal(existingPort, {
-            cwd: workspacePath,
-            asEditor: true,
-          });
           await connectionService.connectToKnownPort(existingPort);
           vscode.window.setStatusBarMessage(
             `$(check) Reconnected to OpenCode on port ${existingPort}`,
