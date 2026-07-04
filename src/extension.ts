@@ -192,7 +192,7 @@ export function registerCommands(): void {
   );
 
   const explainAndFixCommand = vscode.commands.registerCommand(
-    'opencode.explainAndFix',
+    'opencodeConnector.explainAndFix',
     async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
       if (!diagnostic || !uri) {
         outputChannel?.warn(
