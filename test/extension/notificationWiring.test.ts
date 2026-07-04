@@ -3,6 +3,7 @@ import { activate, deactivate } from '../../src/extension';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const extensionState = {
+  extensionUri: { fsPath: '/extension' },
   connectionService: {
     onDidChangeConnectionState: vi.fn(),
     discoverAndConnect: vi.fn(async () => false),
@@ -138,6 +139,7 @@ vi.mock('../../src/commands', () => ({
   handleCheckInstance: vi.fn(),
   handleOpenInOpencode: vi.fn(),
   handleOpenNewInstance: vi.fn(),
+  handlePasteClipboardImage: vi.fn(),
   handleSelectDefaultInstance: vi.fn(),
   handleSendDebugContext: vi.fn(),
   handleSendPath: vi.fn(),
@@ -148,6 +150,14 @@ vi.mock('../../src/commands', () => ({
 }));
 
 describe('notification wiring in extension', () => {
+  function activateExtension(): void {
+    activate({
+      extensionUri: extensionState.extensionUri,
+      globalStorageUri: { fsPath: '/storage' },
+      subscriptions: [],
+    } as never);
+  }
+
   const createSessionStatusEvent = (status: string) => ({
     type: 'session.status',
     properties: {
@@ -166,11 +176,19 @@ describe('notification wiring in extension', () => {
     extensionState.configManager.getNotificationsEnabled.mockReturnValue(true);
   });
 
+  it('initializes configuration with the extension context URI', async () => {
+    const { ConfigManager } = await import('../../src/config');
+
+    activateExtension();
+
+    expect(ConfigManager.getInstance).toHaveBeenCalledWith(extensionState.extensionUri);
+  });
+
   it('enables notification behavior only after configuration is turned on', async () => {
     const { window } = await import('vscode');
     extensionState.configManager.getNotificationsEnabled.mockReturnValue(false);
 
-    activate({} as never, { subscriptions: [] } as never);
+    activateExtension();
     extensionState.connectionHandler?.({ connected: true, port: 4300 });
     extensionState.eventCallbacks?.onEvent(createSessionStatusEvent('working'));
     extensionState.eventCallbacks?.onEvent(createSessionStatusEvent('idle'));
@@ -194,7 +212,7 @@ describe('notification wiring in extension', () => {
   it('follows runtime port changes and ignores stale activity from the previous active connection', async () => {
     const { window } = await import('vscode');
 
-    activate({} as never, { subscriptions: [] } as never);
+    activateExtension();
 
     extensionState.connectionHandler?.({ connected: true, port: 4300 });
     extensionState.eventCallbacks?.onEvent(createSessionStatusEvent('working'));
@@ -212,7 +230,7 @@ describe('notification wiring in extension', () => {
   });
 
   it('reloads notifications when the notificationsEnabled setting changes', () => {
-    activate({} as never, { subscriptions: [] } as never);
+    activateExtension();
     extensionState.connectionHandler?.({ connected: true, port: 4300 });
 
     extensionState.configurationHandler?.({
@@ -226,7 +244,7 @@ describe('notification wiring in extension', () => {
   it('does not reset the notification stream for unrelated opencode configuration changes', async () => {
     const { window } = await import('vscode');
 
-    activate({} as never, { subscriptions: [] } as never);
+    activateExtension();
     extensionState.connectionHandler?.({ connected: true, port: 4300 });
     extensionState.eventCallbacks?.onEvent(createSessionStatusEvent('working'));
 
@@ -244,7 +262,7 @@ describe('notification wiring in extension', () => {
   });
 
   it('syncs notifications with connection-state changes and disposes on deactivate', () => {
-    activate({} as never, { subscriptions: [] } as never);
+    activateExtension();
 
     extensionState.connectionHandler?.({ connected: true, port: 4300 });
     extensionState.connectionHandler?.({ connected: false });

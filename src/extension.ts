@@ -10,6 +10,7 @@ import {
   handleExplainAndFix,
   handleOpenInOpencode,
   handleOpenNewInstance,
+  handlePasteClipboardImage,
   handleSelectDefaultInstance,
   handleSendDebugContext,
   handleSendPath,
@@ -31,14 +32,11 @@ import * as vscode from 'vscode';
 
 let configManager: ConfigManager | undefined;
 let connectionService: ConnectionService | undefined;
-let extensionContext: vscode.ExtensionContext | undefined;
 let statusBarManager: StatusBarManager | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
 let notificationService: NotificationService | undefined;
 
-export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
-  extensionContext = context;
-
+export function activate(context: vscode.ExtensionContext): void {
   try {
     outputChannel = vscode.window.createOutputChannel('OpenCode Connector', { log: true });
     context?.subscriptions?.push(outputChannel);
@@ -48,7 +46,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
   }
 
   try {
-    configManager = ConfigManager.getInstance(extensionUri);
+    configManager = ConfigManager.getInstance(context.extensionUri);
 
     const instanceManager = InstanceManager.getInstance(configManager);
 
@@ -74,9 +72,9 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       statusBarManager?.updateConnectionStatus(event.connected, event.port);
       notificationService?.syncConnection(event.connected ? event.port : undefined);
     });
-    extensionContext?.subscriptions?.push(connectionStateSub);
+    context.subscriptions.push(connectionStateSub);
 
-    registerCommands();
+    registerCommands(context);
 
     const codeActionProvider = vscode.languages.registerCodeActionsProvider(
       '*',
@@ -85,9 +83,9 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
         providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
       }
     );
-    extensionContext?.subscriptions?.push(codeActionProvider);
+    context.subscriptions.push(codeActionProvider);
 
-    registerWorkspaceHandlers();
+    registerWorkspaceHandlers(context);
 
     // Discover and connect in background
     connectionService
@@ -108,7 +106,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
   }
 }
 
-export function registerCommands(): void {
+export function registerCommands(context: vscode.ExtensionContext): void {
   if (!connectionService || !outputChannel) {
     return;
   }
@@ -213,7 +211,12 @@ export function registerCommands(): void {
     async () => handleToggleNotifications(configManager!, outputChannel!)
   );
 
-  extensionContext?.subscriptions?.push(
+  const pasteClipboardImageCommand = vscode.commands.registerCommand(
+    'opencodeConnector.pasteClipboardImage',
+    async () => handlePasteClipboardImage(connectionService!, outputChannel!)
+  );
+
+  context.subscriptions.push(
     statusCommand,
     workspaceCommand,
     addFileCommand,
@@ -227,11 +230,12 @@ export function registerCommands(): void {
     openNewInstanceCommand,
     openInOpencodeCommand,
     explainAndFixCommand,
-    toggleNotificationsCommand
+    toggleNotificationsCommand,
+    pasteClipboardImageCommand
   );
 }
 
-export function registerWorkspaceHandlers(): void {
+export function registerWorkspaceHandlers(context: vscode.ExtensionContext): void {
   const workspaceFoldersChange = vscode.workspace.onDidChangeWorkspaceFolders(() => {
     const workspaceInfo = WorkspaceUtils.detectWorkspace();
     outputChannel?.info(
@@ -254,7 +258,7 @@ export function registerWorkspaceHandlers(): void {
     }
   });
 
-  extensionContext?.subscriptions?.push(workspaceFoldersChange, configChange);
+  context.subscriptions.push(workspaceFoldersChange, configChange);
 }
 
 export function deactivate(): void {
