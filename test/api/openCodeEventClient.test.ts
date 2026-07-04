@@ -201,6 +201,34 @@ describe('OpenCodeEventClient', () => {
     expect(secondConnection.close).toHaveBeenCalledTimes(1);
   });
 
+  it('ignores late chunks from previous or stopped connections', () => {
+    const client = new OpenCodeEventClient(
+      { onEvent, onDisconnect },
+      {
+        createStream,
+        logger,
+      }
+    );
+
+    client.start(4600);
+    const firstConnection = connections[0];
+
+    client.start(4601);
+    firstConnection.handlers.onChunk(
+      'event: message\ndata: {"id":"evt-old","type":"session.status","properties":{"sessionID":"old-session","status":{"type":"idle"}}}\n\n'
+    );
+
+    expect(onEvent).not.toHaveBeenCalled();
+
+    const secondConnection = connections[1];
+    client.stop();
+    secondConnection.handlers.onChunk(
+      'event: message\ndata: {"id":"evt-stopped","type":"session.status","properties":{"sessionID":"stopped-session","status":{"type":"idle"}}}\n\n'
+    );
+
+    expect(onEvent).not.toHaveBeenCalled();
+  });
+
   it('parses frames separated by CRLF boundaries across a split chunk', () => {
     const client = new OpenCodeEventClient(
       { onEvent, onDisconnect },

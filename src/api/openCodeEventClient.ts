@@ -95,7 +95,13 @@ export class OpenCodeEventClient {
     // cannot clobber the current connection or trigger a spurious reconnect.
     const generation = ++this.generation;
     this.connection = this.createStream(getEventUrl(port), {
-      onChunk: chunk => this.handleChunk(chunk),
+      onChunk: chunk => {
+        if (generation !== this.generation || this.stopped) {
+          return;
+        }
+
+        this.handleChunk(chunk);
+      },
       onDisconnect: error => {
         if (generation !== this.generation) {
           // Stale disconnect from a connection that has already been replaced
