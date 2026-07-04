@@ -94,9 +94,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       .discoverAndConnect()
       .then(connected => {
         statusBarManager?.updateConnectionStatus(connected, connectionService?.getPort());
-        if (connected) {
-          notificationService?.syncConnection(connectionService?.getPort());
-        }
       })
       .catch(() => {
         statusBarManager?.updateConnectionStatus(false);
@@ -195,7 +192,7 @@ export function registerCommands(): void {
   );
 
   const explainAndFixCommand = vscode.commands.registerCommand(
-    'opencode.explainAndFix',
+    'opencodeConnector.explainAndFix',
     async (diagnostic: vscode.Diagnostic, uri: vscode.Uri) => {
       if (!diagnostic || !uri) {
         outputChannel?.warn(

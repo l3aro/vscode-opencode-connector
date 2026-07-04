@@ -65,7 +65,7 @@ export class OpenCodeCodeActionProvider implements vscode.CodeActionProvider {
       // Set the command to execute
       action.command = {
         title: 'Explain and Fix (OpenCode)',
-        command: 'opencode.explainAndFix',
+        command: 'opencodeConnector.explainAndFix',
         arguments: [diagnostic, document.uri],
       };
 

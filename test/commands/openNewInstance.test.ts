@@ -21,6 +21,7 @@ function createDeps() {
   const instanceManager = {
     getTerminalForPort: vi.fn(() => undefined as { show: (b: boolean) => void } | undefined),
     spawnInTerminal: vi.fn(async () => undefined),
+    attachToTerminal: vi.fn(async () => undefined),
     findAvailablePort: vi.fn(async () => 5005),
   };
   const outputChannel = {
@@ -73,7 +74,7 @@ describe('openOpencodeForWorkspace notification/connection wiring', () => {
     expect(connectionService.connectToKnownPort).toHaveBeenCalledWith(4096);
   });
 
-  it('attaches to an existing port without a tracked terminal after opening a tab', async () => {
+  it('opens an editor tab and attaches to an existing port without a tracked terminal', async () => {
     const { connectionService, instanceManager, outputChannel } = createDeps();
     connectionService.findPortForWorkspace.mockResolvedValueOnce(4096);
     instanceManager.getTerminalForPort.mockReturnValueOnce(undefined);
@@ -85,10 +86,11 @@ describe('openOpencodeForWorkspace notification/connection wiring', () => {
       outputChannel as never
     );
 
-    expect(instanceManager.spawnInTerminal).toHaveBeenCalledWith(4096, {
+    expect(instanceManager.attachToTerminal).toHaveBeenCalledWith(4096, {
       cwd: '/workspace/app',
       asEditor: true,
     });
+    expect(instanceManager.spawnInTerminal).not.toHaveBeenCalled();
     expect(connectionService.connectToKnownPort).toHaveBeenCalledWith(4096);
   });
 });

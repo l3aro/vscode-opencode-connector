@@ -165,12 +165,12 @@ describe('CodeActionProvider Logic', () => {
     it('should set correct action properties', () => {
       const title = 'Explain and Fix (OpenCode)';
       const kindValue = 'quickfix';
-      const commandName = 'opencode.explainAndFix';
+      const commandName = 'opencodeConnector.explainAndFix';
       const isPreferred = true;
 
       expect(title).toBe('Explain and Fix (OpenCode)');
       expect(kindValue).toBe('quickfix');
-      expect(commandName).toBe('opencode.explainAndFix');
+      expect(commandName).toBe('opencodeConnector.explainAndFix');
       expect(isPreferred).toBe(true);
     });
   });

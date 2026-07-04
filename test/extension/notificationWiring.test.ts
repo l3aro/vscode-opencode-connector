@@ -251,6 +251,6 @@ describe('notification wiring in extension', () => {
     deactivate();
 
     expect(extensionState.eventClientStart).toHaveBeenNthCalledWith(1, 4300);
-    expect(extensionState.eventClientStop).toHaveBeenCalledTimes(2);
+    expect(extensionState.eventClientStop).toHaveBeenCalledTimes(1);
   });
 });

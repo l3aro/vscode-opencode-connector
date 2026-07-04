@@ -9,7 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('OpenCodeEventClient', () => {
   let onEvent: ReturnType<typeof vi.fn>;
   let onDisconnect: ReturnType<typeof vi.fn>;
-  let createStream: ReturnType<typeof vi.fn<OpenCodeEventStreamFactory>>;
+  let createStream: ReturnType<
+    typeof vi.fn<Parameters<OpenCodeEventStreamFactory>, OpenCodeEventStreamConnection>
+  >;
   let logger: {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -83,9 +85,12 @@ describe('OpenCodeEventClient', () => {
         status: { type: 'busy' },
       },
     });
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Raw SSE chunk'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Raw SSE frame'));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Parsed OpenCode event'));
+    expect(logger.info).toHaveBeenCalledWith(
+      'Parsed OpenCode event: sseEvent=message type=session.status'
+    );
+    expect(logger.info.mock.calls.flat().join('\n')).not.toContain('Raw SSE chunk');
+    expect(logger.info.mock.calls.flat().join('\n')).not.toContain('Raw SSE frame');
+    expect(logger.info.mock.calls.flat().join('\n')).not.toContain('session-1');
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Ignoring malformed SSE frame')
     );
@@ -140,7 +145,9 @@ describe('OpenCodeEventClient', () => {
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining('defaulting to SSE event "message"')
     );
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('"sseEvent":"message"'));
+    expect(logger.info).toHaveBeenCalledWith(
+      'Parsed OpenCode event: sseEvent=message type=session.status'
+    );
     expect(logger.warn.mock.calls.flat().join('\n')).not.toContain('without event line');
   });
 
@@ -192,6 +199,34 @@ describe('OpenCodeEventClient', () => {
     // The new connection is still the active one, so stop() closes it.
     client.stop();
     expect(secondConnection.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores late chunks from previous or stopped connections', () => {
+    const client = new OpenCodeEventClient(
+      { onEvent, onDisconnect },
+      {
+        createStream,
+        logger,
+      }
+    );
+
+    client.start(4600);
+    const firstConnection = connections[0];
+
+    client.start(4601);
+    firstConnection.handlers.onChunk(
+      'event: message\ndata: {"id":"evt-old","type":"session.status","properties":{"sessionID":"old-session","status":{"type":"idle"}}}\n\n'
+    );
+
+    expect(onEvent).not.toHaveBeenCalled();
+
+    const secondConnection = connections[1];
+    client.stop();
+    secondConnection.handlers.onChunk(
+      'event: message\ndata: {"id":"evt-stopped","type":"session.status","properties":{"sessionID":"stopped-session","status":{"type":"idle"}}}\n\n'
+    );
+
+    expect(onEvent).not.toHaveBeenCalled();
   });
 
   it('parses frames separated by CRLF boundaries across a split chunk', () => {
