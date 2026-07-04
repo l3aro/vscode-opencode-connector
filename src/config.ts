@@ -50,6 +50,15 @@ export class ConfigManager {
   }
 
   /**
+   * Get OpenCode notifications enabled setting.
+   * @returns Whether completion notifications are enabled (default: true)
+   */
+  public getNotificationsEnabled(): boolean {
+    const config = vscode.workspace.getConfiguration('opencode');
+    return config.get<boolean>('notificationsEnabled') ?? true;
+  }
+
+  /**
    * Set OpenCode server port.
    * @param port - Port number to use
    */
@@ -68,6 +77,15 @@ export class ConfigManager {
   }
 
   /**
+   * Set OpenCode notifications enabled setting.
+   * @param enabled - Whether completion notifications should be enabled
+   */
+  public setNotificationsEnabled(enabled: boolean): Thenable<void> {
+    const config = vscode.workspace.getConfiguration('opencode');
+    return config.update('notificationsEnabled', enabled, vscode.ConfigurationTarget.Global);
+  }
+
+  /**
    * Get default configuration values.
    * @returns Object containing default values
    */
@@ -76,12 +94,14 @@ export class ConfigManager {
     binaryPath: string;
     codeActionSeverityLevels: string[];
     autoFocusTerminal: boolean;
+    notificationsEnabled: boolean;
   } {
     return {
       port: 4096,
       binaryPath: '',
       codeActionSeverityLevels: ['error', 'warning', 'information', 'hint'],
       autoFocusTerminal: true,
+      notificationsEnabled: true,
     };
   }
 

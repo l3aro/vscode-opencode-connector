@@ -15,12 +15,14 @@ import {
   handleSendPath,
   handleSendRelativePath,
   handleShowWorkspace,
+  handleToggleNotifications,
   showStatusBarMenu,
 } from './commands';
 import { ConfigManager } from './config';
 import { ConnectionService, isRemoteSession } from './connection/connectionService';
 import { DefaultInstanceManager } from './instance/defaultInstanceManager';
 import { InstanceManager } from './instance/instanceManager';
+import { NotificationService } from './notifications/notificationService';
 import { OpenCodeCodeActionProvider } from './providers/codeActionProvider';
 import { StatusBarManager } from './statusBar';
 import { WorkspaceUtils } from './utils/workspace';
@@ -32,6 +34,7 @@ let connectionService: ConnectionService | undefined;
 let extensionContext: vscode.ExtensionContext | undefined;
 let statusBarManager: StatusBarManager | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
+let notificationService: NotificationService | undefined;
 
 export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
   extensionContext = context;
@@ -60,6 +63,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
 
     // Initialize connection service
     connectionService = new ConnectionService(configManager, instanceManager, outputChannel);
+    notificationService = new NotificationService(configManager, outputChannel);
 
     // Initialize status bar manager for connection status
     statusBarManager = StatusBarManager.getInstance();
@@ -68,6 +72,7 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
     // Subscribe to connection state changes FIRST (before other init that might fail)
     const connectionStateSub = connectionService.onDidChangeConnectionState(event => {
       statusBarManager?.updateConnectionStatus(event.connected, event.port);
+      notificationService?.syncConnection(event.connected ? event.port : undefined);
     });
     extensionContext?.subscriptions?.push(connectionStateSub);
 
@@ -89,6 +94,9 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       .discoverAndConnect()
       .then(connected => {
         statusBarManager?.updateConnectionStatus(connected, connectionService?.getPort());
+        if (connected) {
+          notificationService?.syncConnection(connectionService?.getPort());
+        }
       })
       .catch(() => {
         statusBarManager?.updateConnectionStatus(false);
@@ -203,6 +211,11 @@ export function registerCommands(): void {
     }
   );
 
+  const toggleNotificationsCommand = vscode.commands.registerCommand(
+    'opencodeConnector.toggleNotifications',
+    async () => handleToggleNotifications(configManager!, outputChannel!)
+  );
+
   extensionContext?.subscriptions?.push(
     statusCommand,
     workspaceCommand,
@@ -216,7 +229,8 @@ export function registerCommands(): void {
     addSelectionToPromptCommand,
     openNewInstanceCommand,
     openInOpencodeCommand,
-    explainAndFixCommand
+    explainAndFixCommand,
+    toggleNotificationsCommand
   );
 }
 
@@ -234,6 +248,13 @@ export function registerWorkspaceHandlers(): void {
     if (event.affectsConfiguration('opencode')) {
       outputChannel?.info('OpenCode configuration changed');
     }
+
+    // Only reload the notification listener when its own setting changes.
+    // Reloading resets in-flight stream state, so unrelated settings (port,
+    // binaryPath, autoFocusTerminal, ...) must not trigger it.
+    if (event.affectsConfiguration('opencode.notificationsEnabled')) {
+      notificationService?.reloadSettings();
+    }
   });
 
   extensionContext?.subscriptions?.push(workspaceFoldersChange, configChange);
@@ -248,6 +269,11 @@ export function deactivate(): void {
       client.destroy();
     }
     connectionService = undefined;
+  }
+
+  if (notificationService) {
+    notificationService.dispose();
+    notificationService = undefined;
   }
 
   InstanceManager.resetInstance();

@@ -4,6 +4,7 @@
   "printWidth": 100,
   "singleQuote": true,
   "trailingComma": "es5",
+  "endOfLine": "auto",
   "bracketSpacing": true,
   "arrowParens": "avoid",
   "plugins": ["@trivago/prettier-plugin-sort-imports"],

@@ -45,6 +45,35 @@ export class ConnectionService {
   }
 
   /**
+   * Replace the active client and emit the latest connection state.
+   * @param port - Active runtime port
+   */
+  private setActiveConnection(port: number): void {
+    if (this.client) {
+      this.client.destroy();
+    }
+
+    this.client = new OpenCodeClient({ port });
+    this.connectedPort = port;
+    this._onDidChangeConnectionState.fire({ connected: true, port });
+  }
+
+  /**
+   * Clear the active client and emit a disconnected state when needed.
+   */
+  private clearActiveConnection(): void {
+    if (this.client) {
+      this.client.destroy();
+      this.client = undefined;
+    }
+
+    if (this.connectedPort !== undefined) {
+      this.connectedPort = undefined;
+      this._onDidChangeConnectionState.fire({ connected: false });
+    }
+  }
+
+  /**
    * Discover a running OpenCode instance serving the current workspace directory.
    * Scans running processes, verifies each with GET /path, and matches against workspace CWD.
    * If a match is found, creates/updates the global client to use that port.
@@ -90,11 +119,7 @@ export class ConnectionService {
           if (pathsMatch(pathInfo.directory, workspaceDir)) {
             foundMatchingProcess = true;
             if (this.connectedPort !== port) {
-              if (this.client) {
-                this.client.destroy();
-              }
-              this.client = new OpenCodeClient({ port });
-              this.connectedPort = port;
+              this.setActiveConnection(port);
 
               this.outputChannel?.info(
                 `OpenCode Connector: auto-connected to instance on port ${port}`
@@ -187,13 +212,8 @@ export class ConnectionService {
     const port = await this.findPortForWorkspace(workspacePath);
 
     if (port !== undefined) {
-      if (this.client) {
-        this.client.destroy();
-      }
-      this.client = new OpenCodeClient({ port });
-      this.connectedPort = port;
+      this.setActiveConnection(port);
       this.outputChannel?.info(`Switched to port ${port} for workspace "${workspacePath}"`);
-      this._onDidChangeConnectionState.fire({ connected: true, port });
       return true;
     }
 
@@ -223,14 +243,9 @@ export class ConnectionService {
             tempClient.destroy();
 
             if (pathsMatch(pathInfo.directory, currentWorkspaceDir)) {
-              if (this.client) {
-                this.client.destroy();
-              }
-              this.client = new OpenCodeClient({ port: defaultPort });
-              this.connectedPort = defaultPort;
+              this.setActiveConnection(defaultPort);
 
               this.outputChannel?.info(`Using default instance on port ${defaultPort}`);
-              this._onDidChangeConnectionState.fire({ connected: true, port: defaultPort });
               return true;
             }
             this.outputChannel?.info(
@@ -262,19 +277,17 @@ export class ConnectionService {
               this._onDidChangeConnectionState.fire({ connected: true, port: this.connectedPort });
               return true;
             }
-            this.client.destroy();
-            this.client = undefined;
-            this.connectedPort = undefined;
+            this.clearActiveConnection();
           }
         }
       } catch {
         // Current client is dead, try discovery
+        this.clearActiveConnection();
       }
     }
 
     const discovered = await this.discoverAndConnect();
     if (discovered) {
-      this._onDidChangeConnectionState.fire({ connected: true, port: this.connectedPort });
       return true;
     }
 
@@ -290,13 +303,11 @@ export class ConnectionService {
         if (this.client) {
           this.client.destroy();
         }
-        this.client = new OpenCodeClient({ port });
-        this.connectedPort = port;
+        this.setActiveConnection(port);
 
         this.outputChannel?.info(
           `OpenCode Connector: spawned and connected to instance on port ${port}`
         );
-        this._onDidChangeConnectionState.fire({ connected: true, port });
         return true;
       } else {
         this.lastAutoSpawnError = `Spawned OpenCode on port ${port} but it did not become ready within 30s. Check the "OpenCode" terminal for errors.`;
@@ -306,23 +317,71 @@ export class ConnectionService {
     }
 
     const port = this.configManager.getPort() ?? 4096;
-    if (!this.client || this.client.getPort() !== port) {
-      if (this.client) {
-        this.client.destroy();
-      }
-      this.client = new OpenCodeClient({ port });
-      this.connectedPort = port;
+    let candidateClient = this.client;
+    if (!candidateClient || candidateClient.getPort() !== port) {
+      candidateClient = new OpenCodeClient({ port });
     }
 
     try {
-      const connected = await this.client.testConnection();
+      const connected = await candidateClient.testConnection();
       if (connected) {
-        this._onDidChangeConnectionState.fire({ connected: true, port });
+        if (candidateClient !== this.client) {
+          // setActiveConnection already emits the connected state exactly once.
+          this.setActiveConnection(port);
+        } else {
+          this.connectedPort = port;
+          this._onDidChangeConnectionState.fire({ connected: true, port });
+        }
+      } else {
+        if (candidateClient !== this.client) {
+          candidateClient.destroy();
+        }
+        this.clearActiveConnection();
       }
       return connected;
     } catch {
+      if (candidateClient !== this.client) {
+        candidateClient.destroy();
+      }
+      this.clearActiveConnection();
       return false;
     }
+  }
+
+  /**
+   * Attach to an OpenCode instance on a port we already know (for example one
+   * we just spawned or focused via "Open in OpenCode"). Waits for the server to
+   * accept requests, then promotes it to the active connection and emits the
+   * connected state so dependent services (status bar, notifications) wire up.
+   *
+   * Unlike ensureConnected(), this never scans processes nor auto-spawns, so it
+   * establishes a monitored connection even when process/port discovery is
+   * unavailable on the host.
+   *
+   * @param port - Known runtime port to attach to
+   * @param waitForReady - Wait for the server to become ready first (default: true)
+   * @returns true once attached, false if the server never responded
+   */
+  async connectToKnownPort(port: number, waitForReady: boolean = true): Promise<boolean> {
+    if (waitForReady) {
+      const ready = await this.waitForServer(port);
+      if (!ready) {
+        this.outputChannel?.warn(
+          `Known OpenCode instance on port ${port} did not become ready; not attaching`
+        );
+        return false;
+      }
+    }
+
+    if (this.connectedPort === port && this.client) {
+      // Already attached — re-emit so late subscribers re-sync to this port.
+      this._onDidChangeConnectionState.fire({ connected: true, port });
+      return true;
+    }
+
+    this.setActiveConnection(port);
+    this.outputChannel?.info(`Attached to OpenCode instance on known port ${port}`);
+    return true;
   }
 
   getClient(): OpenCodeClient | undefined {
@@ -361,12 +420,9 @@ export class ConnectionService {
    * Disconnect from the current OpenCode instance.
    */
   disconnect(): void {
-    if (this.client) {
-      this.client.destroy();
-      this.client = undefined;
-      this.connectedPort = undefined;
+    if (this.client || this.connectedPort !== undefined) {
+      this.clearActiveConnection();
       this.outputChannel?.info('OpenCode Connector: disconnected');
-      this._onDidChangeConnectionState.fire({ connected: false });
     }
   }
 

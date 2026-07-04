@@ -153,6 +153,25 @@ export interface SSEEvent {
   properties: Record<string, unknown>;
 }
 
+/** Supported OpenCode session status values used by notifications. */
+export type OpenCodeSessionStatus = 'idle' | 'busy' | 'retry' | (string & {});
+
+/** Nested session status payload emitted by OpenCode. */
+export interface OpenCodeSessionStatusPayload {
+  type: OpenCodeSessionStatus;
+  [key: string]: unknown;
+}
+
+/** `session.status` event emitted by OpenCode. */
+export interface SessionStatusEvent extends SSEEvent {
+  type: 'session.status';
+  properties: {
+    sessionID: string;
+    status: OpenCodeSessionStatusPayload;
+    [key: string]: unknown;
+  };
+}
+
 /** POST /session/:id/message request body */
 export interface MessageInput {
   providerID: string;
