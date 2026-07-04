@@ -73,18 +73,18 @@ export function decodeClipboardImage(mimeType: string, base64: string): Uint8Arr
 }
 
 export function resolveClipboardImageDirectory(
-  workspaceRoot: string,
+  openCodeDirectory: string,
   configuredDirectory: string
 ): string {
   const trimmedDirectory = configuredDirectory.trim();
   if (!trimmedDirectory || isAbsolute(trimmedDirectory)) {
-    throw new Error('Clipboard image directory must be a workspace-relative path');
+    throw new Error('Clipboard image directory must be an OpenCode-relative path');
   }
 
-  const directory = resolve(workspaceRoot, trimmedDirectory);
-  const relativeDirectory = relative(workspaceRoot, directory);
+  const directory = resolve(openCodeDirectory, trimmedDirectory);
+  const relativeDirectory = relative(openCodeDirectory, directory);
   if (relativeDirectory === '..' || relativeDirectory.startsWith(`..${sep}`)) {
-    throw new Error('Clipboard image directory must stay inside the workspace');
+    throw new Error('Clipboard image directory must stay inside the OpenCode working directory');
   }
 
   return directory;
@@ -115,13 +115,14 @@ export function isStoredClipboardImageName(name: string, prefix: string): boolea
 export async function assertClientServesWorkspace(
   client: WorkspacePathClient,
   workspaceRoot: string
-): Promise<void> {
+): Promise<string> {
   const pathInfo = await client.getPath();
   if (!pathsMatch(pathInfo.directory, workspaceRoot)) {
     throw new Error(
       `Connected OpenCode instance serves "${pathInfo.directory}", not "${workspaceRoot}"`
     );
   }
+  return pathInfo.directory;
 }
 
 async function pruneStoredImages(directory: vscode.Uri, filenamePrefix: string): Promise<void> {
@@ -236,14 +237,14 @@ export async function handlePasteClipboardImage(
       if (!workspaceRoot) {
         throw new Error('Open a workspace folder to paste clipboard images');
       }
-      await assertClientServesWorkspace(client, workspaceRoot);
+      const openCodeDirectory = await assertClientServesWorkspace(client, workspaceRoot);
 
       const configuredDirectory = connectionService.getConfigManager().getClipboardImageDirectory();
       const filenamePrefix = resolveClipboardImageFilenamePrefix(
         connectionService.getConfigManager().getClipboardImageFilenamePrefix()
       );
       const directory = vscode.Uri.file(
-        resolveClipboardImageDirectory(workspaceRoot, configuredDirectory)
+        resolveClipboardImageDirectory(openCodeDirectory, configuredDirectory)
       );
       await vscode.workspace.fs.createDirectory(directory);
       const extension = ImageExtensions[message.mimeType];
@@ -254,7 +255,7 @@ export async function handlePasteClipboardImage(
       await vscode.workspace.fs.writeFile(imageUri, bytes);
       await pruneStoredImages(directory, filenamePrefix);
 
-      const relPath = relative(workspaceRoot, imageUri.fsPath).split(sep).join('/');
+      const relPath = relative(openCodeDirectory, imageUri.fsPath).split(sep).join('/');
       await client.appendPrompt(`@${relPath}`);
       outputChannel.info(`[pasteClipboardImage] Added ${relPath} to the prompt`);
       vscode.window.setStatusBarMessage('$(check) Clipboard image added to OpenCode', 3000);

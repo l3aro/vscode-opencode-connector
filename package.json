@@ -129,7 +129,7 @@
         "opencode.clipboardImageDirectory": {
           "type": "string",
           "default": ".opencode/clipboard-images",
-          "description": "Workspace-relative directory for pasted clipboard images. Keep this inside OpenCode's working directory and ignore it in Git."
+          "description": "OpenCode-relative directory for pasted clipboard images. Keep this inside OpenCode's working directory and ignore it in Git."
         },
         "opencode.clipboardImageFilenamePrefix": {
           "type": "string",

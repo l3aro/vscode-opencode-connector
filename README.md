@@ -103,7 +103,7 @@ You can customize the extension behavior through the following VS Code settings:
 |---------|------|---------|-------------|
 | `opencode.port` | number | `4096` | Port for OpenCode server connection |
 | `opencode.binaryPath` | string | `""` | Absolute path to OpenCode binary (leave empty to use PATH) |
-| `opencode.clipboardImageDirectory` | string | `".opencode/clipboard-images"` | Workspace-relative directory used for pasted clipboard images |
+| `opencode.clipboardImageDirectory` | string | `".opencode/clipboard-images"` | OpenCode-relative directory used for pasted clipboard images |
 | `opencode.clipboardImageFilenamePrefix` | string | `"opencode-clipboard-"` | Filename prefix used for pasted clipboard images |
 | `opencode.codeAction.severityLevels` | array | `["error", "warning", "information", "hint"]` | Diagnostic severity levels that trigger the "Explain and Fix" code action |
 | `opencode.autoFocusTerminal` | boolean | `true` | Automatically focus OpenCode terminal after sending prompts |

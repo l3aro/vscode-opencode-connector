@@ -41,7 +41,7 @@ export class ConfigManager {
   }
 
   /**
-   * Get the workspace-relative directory used for pasted clipboard images.
+   * Get the OpenCode-relative directory used for pasted clipboard images.
    * @returns Relative storage directory (default: '.opencode/clipboard-images')
    */
   public getClipboardImageDirectory(): string {

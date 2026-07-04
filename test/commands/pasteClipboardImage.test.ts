@@ -50,21 +50,21 @@ describe('decodeClipboardImage', () => {
 });
 
 describe('resolveClipboardImageDirectory', () => {
-  it('resolves a configured directory inside the workspace', () => {
-    expect(resolveClipboardImageDirectory('/workspace', '.opencode/images')).toBe(
-      '/workspace/.opencode/images'
+  it('resolves a configured directory inside the OpenCode working directory', () => {
+    expect(resolveClipboardImageDirectory('/repo', '.opencode/images')).toBe(
+      '/repo/.opencode/images'
     );
   });
 
   it('rejects absolute directories', () => {
-    expect(() => resolveClipboardImageDirectory('/workspace', '/tmp/images')).toThrow(
-      'workspace-relative path'
+    expect(() => resolveClipboardImageDirectory('/repo', '/tmp/images')).toThrow(
+      'OpenCode-relative path'
     );
   });
 
-  it('rejects directories that escape the workspace', () => {
-    expect(() => resolveClipboardImageDirectory('/workspace', '../images')).toThrow(
-      'stay inside the workspace'
+  it('rejects directories that escape the OpenCode working directory', () => {
+    expect(() => resolveClipboardImageDirectory('/repo', '../images')).toThrow(
+      'stay inside the OpenCode working directory'
     );
   });
 });
@@ -120,7 +120,17 @@ describe('assertClientServesWorkspace', () => {
     };
 
     await expect(assertClientServesWorkspace(client, '/workspace/project-a')).resolves.toBe(
-      undefined
+      '/workspace/project-a'
+    );
+  });
+
+  it('returns the OpenCode directory when it serves a parent workspace', async () => {
+    const client = {
+      getPath: vi.fn(async () => createPathResponse('/workspace')),
+    };
+
+    await expect(assertClientServesWorkspace(client, '/workspace/project-a')).resolves.toBe(
+      '/workspace'
     );
   });
 
