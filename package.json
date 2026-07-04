@@ -131,6 +131,11 @@
           "default": ".opencode/clipboard-images",
           "description": "Workspace-relative directory for pasted clipboard images. Keep this inside OpenCode's working directory and ignore it in Git."
         },
+        "opencode.clipboardImageFilenamePrefix": {
+          "type": "string",
+          "default": "opencode-clipboard-",
+          "description": "Filename prefix for pasted clipboard images. Pruning only removes files with this generated prefix and supported image extensions."
+        },
         "opencode.codeAction.severityLevels": {
           "type": "array",
           "default": [

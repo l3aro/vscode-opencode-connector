@@ -45,4 +45,12 @@ describe('ConfigManager notifications setting', () => {
 
     expect(configManager.getClipboardImageDirectory()).toBe('.opencode/clipboard-images');
   });
+
+  it('uses the default clipboard image filename prefix when unset', () => {
+    get.mockReturnValueOnce(undefined);
+
+    const configManager = ConfigManager.getInstance({} as never);
+
+    expect(configManager.getClipboardImageFilenamePrefix()).toBe('opencode-clipboard-');
+  });
 });

@@ -50,6 +50,15 @@ export class ConfigManager {
   }
 
   /**
+   * Get the filename prefix used for pasted clipboard images.
+   * @returns Filename prefix (default: 'opencode-clipboard-')
+   */
+  public getClipboardImageFilenamePrefix(): string {
+    const config = vscode.workspace.getConfiguration('opencode');
+    return config.get<string>('clipboardImageFilenamePrefix') ?? 'opencode-clipboard-';
+  }
+
+  /**
    * Get auto focus terminal setting.
    * @returns Whether to automatically focus the terminal when spawning OpenCode (default: true)
    */
@@ -105,6 +114,7 @@ export class ConfigManager {
     autoFocusTerminal: boolean;
     notificationsEnabled: boolean;
     clipboardImageDirectory: string;
+    clipboardImageFilenamePrefix: string;
   } {
     return {
       port: 4096,
@@ -113,6 +123,7 @@ export class ConfigManager {
       autoFocusTerminal: true,
       notificationsEnabled: true,
       clipboardImageDirectory: '.opencode/clipboard-images',
+      clipboardImageFilenamePrefix: 'opencode-clipboard-',
     };
   }
 
