@@ -1,6 +1,8 @@
 import {
   decodeClipboardImage,
+  isStoredClipboardImageName,
   resolveClipboardImageDirectory,
+  resolveClipboardImageFilenamePrefix,
 } from '../../src/commands/pasteClipboardImage';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -52,5 +54,49 @@ describe('resolveClipboardImageDirectory', () => {
     expect(() => resolveClipboardImageDirectory('/workspace', '../images')).toThrow(
       'stay inside the workspace'
     );
+  });
+});
+
+describe('resolveClipboardImageFilenamePrefix', () => {
+  it('uses the default prefix when unset', () => {
+    expect(resolveClipboardImageFilenamePrefix('')).toBe('opencode-clipboard-');
+  });
+
+  it('trims configured prefixes', () => {
+    expect(resolveClipboardImageFilenamePrefix(' pasted-image- ')).toBe('pasted-image-');
+  });
+
+  it('rejects path separators', () => {
+    expect(() => resolveClipboardImageFilenamePrefix('images/paste-')).toThrow(
+      'must not contain path separators'
+    );
+    expect(() => resolveClipboardImageFilenamePrefix('images\\paste-')).toThrow(
+      'must not contain path separators'
+    );
+  });
+});
+
+describe('isStoredClipboardImageName', () => {
+  const uuid = '123e4567-e89b-12d3-a456-426614174000';
+
+  it('matches generated clipboard image names with the configured prefix', () => {
+    expect(isStoredClipboardImageName(`custom-${Date.now()}-${uuid}.png`, 'custom-')).toBe(true);
+  });
+
+  it('escapes regex characters in configured prefixes', () => {
+    expect(isStoredClipboardImageName(`paste+(1)-123-${uuid}.webp`, 'paste+(1)-')).toBe(true);
+  });
+
+  it('does not match unrelated files in the same directory', () => {
+    expect(isStoredClipboardImageName('logo.png', 'opencode-clipboard-')).toBe(false);
+    expect(
+      isStoredClipboardImageName(
+        `opencode-clipboard-${Date.now()}-${uuid}.txt`,
+        'opencode-clipboard-'
+      )
+    ).toBe(false);
+    expect(
+      isStoredClipboardImageName(`other-${Date.now()}-${uuid}.png`, 'opencode-clipboard-')
+    ).toBe(false);
   });
 });

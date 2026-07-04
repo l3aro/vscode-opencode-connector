@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const MAX_STORED_IMAGES = 20;
+const DEFAULT_IMAGE_FILENAME_PREFIX = 'opencode-clipboard-';
 
 const ImageExtensions: Readonly<Record<string, string>> = {
   'image/gif': 'gif',
@@ -14,6 +15,8 @@ const ImageExtensions: Readonly<Record<string, string>> = {
   'image/png': 'png',
   'image/webp': 'webp',
 };
+
+const ImageExtensionPattern = Object.values(ImageExtensions).join('|');
 
 interface ClipboardImageMessage {
   readonly type: 'clipboardImage';
@@ -82,11 +85,34 @@ export function resolveClipboardImageDirectory(
   return directory;
 }
 
-async function pruneStoredImages(directory: vscode.Uri): Promise<void> {
+export function resolveClipboardImageFilenamePrefix(configuredPrefix: string): string {
+  const prefix = configuredPrefix.trim();
+  if (!prefix) {
+    return DEFAULT_IMAGE_FILENAME_PREFIX;
+  }
+  if (prefix.includes('/') || prefix.includes('\\')) {
+    throw new Error('Clipboard image filename prefix must not contain path separators');
+  }
+  if (/\0|\r|\n/.test(prefix)) {
+    throw new Error('Clipboard image filename prefix must stay on one line');
+  }
+
+  return prefix;
+}
+
+export function isStoredClipboardImageName(name: string, prefix: string): boolean {
+  const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escapedPrefix}\\d+-[0-9a-fA-F-]{36}\\.(${ImageExtensionPattern})$`).test(
+    name
+  );
+}
+
+async function pruneStoredImages(directory: vscode.Uri, filenamePrefix: string): Promise<void> {
   const entries = await vscode.workspace.fs.readDirectory(directory);
   const images = entries
     .filter(([, type]) => type === vscode.FileType.File)
     .map(([name]) => name)
+    .filter(name => isStoredClipboardImageName(name, filenamePrefix))
     .sort()
     .reverse();
 
@@ -194,14 +220,20 @@ export async function handlePasteClipboardImage(
         throw new Error('Open a workspace folder to paste clipboard images');
       }
       const configuredDirectory = connectionService.getConfigManager().getClipboardImageDirectory();
+      const filenamePrefix = resolveClipboardImageFilenamePrefix(
+        connectionService.getConfigManager().getClipboardImageFilenamePrefix()
+      );
       const directory = vscode.Uri.file(
         resolveClipboardImageDirectory(workspaceRoot, configuredDirectory)
       );
       await vscode.workspace.fs.createDirectory(directory);
       const extension = ImageExtensions[message.mimeType];
-      const imageUri = vscode.Uri.joinPath(directory, `${Date.now()}-${randomUUID()}.${extension}`);
+      const imageUri = vscode.Uri.joinPath(
+        directory,
+        `${filenamePrefix}${Date.now()}-${randomUUID()}.${extension}`
+      );
       await vscode.workspace.fs.writeFile(imageUri, bytes);
-      await pruneStoredImages(directory);
+      await pruneStoredImages(directory, filenamePrefix);
 
       const relPath = relative(workspaceRoot, imageUri.fsPath).split(sep).join('/');
       await client.appendPrompt(`@${relPath}`);
