@@ -36,6 +36,7 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 | `OpenCode: Add to Prompt` | Send the current file reference (e.g., `@src/main.ts#L10-L20`) to the TUI | `Ctrl+Shift+A` / `Cmd+Shift+A` |
 | `OpenCode: Add Selection to Prompt` | Send the selected code range (e.g., `@src/main.ts#L10-L20`) to the TUI | Right-click in editor |
 | `OpenCode: Select Files to Add` | Open a file picker to select multiple files to add to the prompt | `Ctrl+Shift+Alt+A` / `Cmd+Shift+Alt+A` |
+| `OpenCode: Paste Clipboard Image` | Paste a local clipboard image into a local or remote OpenCode prompt | Command Palette |
 | `OpenCode: Open in OpenCode` | Open an OpenCode instance for the current workspace as an editor tab | Editor title bar / Explorer right-click |
 | `OpenCode: Check Instance` | Check if an OpenCode instance is running and connected | — |
 | `OpenCode: Show Workspace` | Display workspace information detected by the extension | — |
@@ -102,8 +103,11 @@ You can customize the extension behavior through the following VS Code settings:
 |---------|------|---------|-------------|
 | `opencode.port` | number | `4096` | Port for OpenCode server connection |
 | `opencode.binaryPath` | string | `""` | Absolute path to OpenCode binary (leave empty to use PATH) |
+| `opencode.clipboardImageDirectory` | string | `".opencode/clipboard-images"` | Workspace-relative directory used for pasted clipboard images |
 | `opencode.codeAction.severityLevels` | array | `["error", "warning", "information", "hint"]` | Diagnostic severity levels that trigger the "Explain and Fix" code action |
 | `opencode.autoFocusTerminal` | boolean | `true` | Automatically focus OpenCode terminal after sending prompts |
+
+The clipboard image directory must remain inside OpenCode's current working directory so its tools can read the files. Add the configured directory to your project's `.gitignore`; the default `.opencode/` path is already ignored by this repository.
 
 ## Requirements
 
