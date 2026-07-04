@@ -94,9 +94,6 @@ export function activate(extensionUri: vscode.Uri, context: vscode.ExtensionCont
       .discoverAndConnect()
       .then(connected => {
         statusBarManager?.updateConnectionStatus(connected, connectionService?.getPort());
-        if (connected) {
-          notificationService?.syncConnection(connectionService?.getPort());
-        }
       })
       .catch(() => {
         statusBarManager?.updateConnectionStatus(false);

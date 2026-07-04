@@ -78,17 +78,14 @@ export class NotificationService {
 
     const previousPort = this.activePort;
     this.activePort = port;
-    this.resetStreamState();
-    this.clearReconnectTimer();
-    this.reconnectAttempt = 0;
     if (previousPort !== undefined) {
-      this.outputChannel?.info(`Stopping OpenCode notification listener on port ${previousPort}`);
-      this.eventClient.stop();
+      this.stopListening(previousPort);
+    } else {
+      this.resetListenerState();
     }
 
     if (port !== undefined && this.config.getNotificationsEnabled()) {
-      this.outputChannel?.info(`Starting OpenCode notification listener on port ${port}`);
-      this.eventClient.start(port);
+      this.startListening(port);
     }
   }
 
@@ -96,14 +93,10 @@ export class NotificationService {
    * Reload notification behavior after a settings change.
    */
   public reloadSettings(): void {
-    this.clearReconnectTimer();
-    this.reconnectAttempt = 0;
-    this.resetStreamState();
     if (this.activePort !== undefined) {
-      this.outputChannel?.info(
-        `Stopping OpenCode notification listener on port ${this.activePort}`
-      );
-      this.eventClient.stop();
+      this.stopListening(this.activePort);
+    } else {
+      this.resetListenerState();
     }
 
     if (!this.config.getNotificationsEnabled()) {
@@ -112,10 +105,7 @@ export class NotificationService {
     }
 
     if (this.activePort !== undefined) {
-      this.outputChannel?.info(
-        `Starting OpenCode notification listener on port ${this.activePort}`
-      );
-      this.eventClient.start(this.activePort);
+      this.startListening(this.activePort);
     }
   }
 
@@ -123,15 +113,11 @@ export class NotificationService {
    * Dispose notification resources.
    */
   public dispose(): void {
-    this.clearReconnectTimer();
-    this.reconnectAttempt = 0;
-    this.resetStreamState();
     if (this.activePort !== undefined) {
-      this.outputChannel?.info(
-        `Stopping OpenCode notification listener on port ${this.activePort}`
-      );
+      this.stopListening(this.activePort);
+    } else {
+      this.resetListenerState();
     }
-    this.eventClient.stop();
   }
 
   private handleEvent(event: { type: string; properties: Record<string, unknown> }): void {
@@ -222,6 +208,23 @@ export class NotificationService {
   private resetStreamState(): void {
     this.activeSessions.clear();
     this.lastNotificationAt = 0;
+  }
+
+  private resetListenerState(): void {
+    this.clearReconnectTimer();
+    this.reconnectAttempt = 0;
+    this.resetStreamState();
+  }
+
+  private stopListening(port: number): void {
+    this.resetListenerState();
+    this.outputChannel?.info(`Stopping OpenCode notification listener on port ${port}`);
+    this.eventClient.stop();
+  }
+
+  private startListening(port: number): void {
+    this.outputChannel?.info(`Starting OpenCode notification listener on port ${port}`);
+    this.eventClient.start(port);
   }
 
   private async showCompletionNotification(): Promise<void> {

@@ -165,8 +165,7 @@ export class OpenCodeEventClient {
     this.logger.info(`Raw SSE frame (${rawFrame.length} chars): ${JSON.stringify(rawFrame)}`);
 
     const lines = rawFrame.split(/\r?\n/);
-    const data = rawFrame
-      .split(/\r?\n/)
+    const data = lines
       .filter(line => line.startsWith('data:'))
       .map(line => line.slice('data:'.length).trim())
       .join('\n');
