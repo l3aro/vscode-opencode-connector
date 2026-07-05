@@ -14,6 +14,8 @@ OpenCode is fantastic as a standalone TUI (Terminal User Interface). It's powerf
 
 ![OpenCode Connector extension overview](resources/overview.gif)
 
+![OpenCode Connector Paste clipboard image](resources/paste-image.gif)
+
 ## Why use this extension?
 
 You shouldn't have to choose between a great editor (VS Code) and a great AI agent (OpenCode). This connector gives you the best of both worlds:
@@ -27,6 +29,8 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
     - *Auto-Spawn*: If no instance is running, it spawns one for you in the integrated terminal.
     - *One command to rule them all.*
 
+3.  **Paste Clipboard Image**: Send clipboard images through SSH and tmux into OpenCode, even in remote sessions.
+
 ## Features
 
 ### Commands
@@ -36,6 +40,7 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
 | `OpenCode: Add to Prompt` | Send the current file reference (e.g., `@src/main.ts#L10-L20`) to the TUI | `Ctrl+Shift+A` / `Cmd+Shift+A` |
 | `OpenCode: Add Selection to Prompt` | Send the selected code range (e.g., `@src/main.ts#L10-L20`) to the TUI | Right-click in editor |
 | `OpenCode: Select Files to Add` | Open a file picker to select multiple files to add to the prompt | `Ctrl+Shift+Alt+A` / `Cmd+Shift+Alt+A` |
+| `OpenCode: Paste Clipboard Image` | Paste a local clipboard image into a local or remote OpenCode prompt | Command Palette |
 | `OpenCode: Open in OpenCode` | Open an OpenCode instance for the current workspace as an editor tab | Editor title bar / Explorer right-click |
 | `OpenCode: Check Instance` | Check if an OpenCode instance is running and connected | — |
 | `OpenCode: Show Workspace` | Display workspace information detected by the extension | — |
@@ -84,6 +89,11 @@ All send commands automatically route to the **correct OpenCode instance** for t
 - Runs the OpenCode TUI directly within VS Code's terminal or as an editor tab
 - Auto-focuses the terminal after sending prompts (configurable)
 
+### Clipboard Images
+
+- Clipboard image → ssh → tmux → opencode
+- This wasn't possible before since you can't "paste" clipboard image into a tmuxed ssh session
+
 ## Usage
 
 1.  Open your project in VS Code.
@@ -102,8 +112,12 @@ You can customize the extension behavior through the following VS Code settings:
 |---------|------|---------|-------------|
 | `opencode.port` | number | `4096` | Port for OpenCode server connection |
 | `opencode.binaryPath` | string | `""` | Absolute path to OpenCode binary (leave empty to use PATH) |
+| `opencode.clipboardImageDirectory` | string | `".opencode/clipboard-images"` | OpenCode-relative directory used for pasted clipboard images |
+| `opencode.clipboardImageFilenamePrefix` | string | `"opencode-clipboard-"` | Filename prefix used for pasted clipboard images |
 | `opencode.codeAction.severityLevels` | array | `["error", "warning", "information", "hint"]` | Diagnostic severity levels that trigger the "Explain and Fix" code action |
 | `opencode.autoFocusTerminal` | boolean | `true` | Automatically focus OpenCode terminal after sending prompts |
+
+The clipboard image directory must remain inside OpenCode's current working directory so its tools can read the files. Add the configured directory to your project's `.gitignore`; the default `.opencode/` path is already ignored by this repository.
 
 ## Requirements
 

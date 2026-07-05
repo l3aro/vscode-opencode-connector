@@ -12,3 +12,4 @@ export { handleAddSelectionToPrompt } from './addSelectionToPrompt';
 export { handleOpenNewInstance } from './openNewInstance';
 export { handleOpenInOpencode } from './openInOpencode';
 export { handleToggleNotifications } from './toggleNotifications';
+export { handlePasteClipboardImage } from './pasteClipboardImage';
