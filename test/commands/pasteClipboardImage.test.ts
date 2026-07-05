@@ -7,6 +7,7 @@ import {
 } from '../../src/commands/pasteClipboardImage';
 import type { PathResponse } from '../../src/types';
 
+import { resolve } from 'path';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('vscode', () => ({}));
@@ -52,7 +53,7 @@ describe('decodeClipboardImage', () => {
 describe('resolveClipboardImageDirectory', () => {
   it('resolves a configured directory inside the OpenCode working directory', () => {
     expect(resolveClipboardImageDirectory('/repo', '.opencode/images')).toBe(
-      '/repo/.opencode/images'
+      resolve('/repo', '.opencode/images')
     );
   });
 
