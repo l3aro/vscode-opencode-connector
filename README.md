@@ -14,6 +14,8 @@ OpenCode is fantastic as a standalone TUI (Terminal User Interface). It's powerf
 
 ![OpenCode Connector extension overview](resources/overview.gif)
 
+![OpenCode Connector Paste clipboard image](resources/paste-image.gif)
+
 ## Why use this extension?
 
 You shouldn't have to choose between a great editor (VS Code) and a great AI agent (OpenCode). This connector gives you the best of both worlds:
@@ -26,6 +28,8 @@ You shouldn't have to choose between a great editor (VS Code) and a great AI age
     - *Auto-Discovery*: The extension automatically finds running OpenCode instances serving your current workspace.
     - *Auto-Spawn*: If no instance is running, it spawns one for you in the integrated terminal.
     - *One command to rule them all.*
+
+3.  **Paste Clipboard Image**: Send clipboard images through SSH and tmux into OpenCode, even in remote sessions.
 
 ## Features
 
@@ -84,6 +88,11 @@ All send commands automatically route to the **correct OpenCode instance** for t
 
 - Runs the OpenCode TUI directly within VS Code's terminal or as an editor tab
 - Auto-focuses the terminal after sending prompts (configurable)
+
+### Clipboard Images
+
+- Clipboard image → ssh → tmux → opencode
+- This wasn't possible before since you can't "paste" clipboard image into a tmuxed ssh session
 
 ## Usage
 
